@@ -72,5 +72,5 @@ Double-click `STUNT.exe` directly on your Desktop screen!
 
 ---
 
-## 📜 Copyright
-Copyright (c) 2026 Akul. All Rights Reserved.
+## 📜 License
+Licensed under the [MIT License](LICENSE).
