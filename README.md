@@ -56,8 +56,8 @@ Double-click `STUNT.exe` directly on your Desktop screen!
 ### Option 2: Run from Source
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/STUNT.git
-   cd STUNT
+   git clone https://github.com/bhatnagarakul5-debug/S.T.U.N.T-Student-Tracker-for-Unified-Navigation-Tasks.git
+   cd S.T.U.N.T-Student-Tracker-for-Unified-Navigation-Tasks
    ```
 
 2. **Install Dependencies**:
@@ -72,5 +72,5 @@ Double-click `STUNT.exe` directly on your Desktop screen!
 
 ---
 
-## 📜 License
-Licensed under the [MIT License](LICENSE).
+## 📜 Copyright
+Copyright (c) 2026 Akul. All Rights Reserved.
