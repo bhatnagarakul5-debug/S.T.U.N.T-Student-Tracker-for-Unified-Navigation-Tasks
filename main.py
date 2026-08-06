@@ -1132,10 +1132,11 @@ class StuntMainWindow(QMainWindow):
         lay = QVBoxLayout(dlg)
 
         sub_combo = QComboBox(dlg)
+        sub_combo.setEditable(True)
+        sub_combo.lineEdit().setPlaceholderText("Type or select subject name...")
         for s in self.data['subjects']: sub_combo.addItem(f"{s['name']} ({s['code']})", s['id'])
         if edit_item:
-            idx = sub_combo.findData(edit_item['subjectId'])
-            if idx != -1: sub_combo.setCurrentIndex(idx)
+            sub_combo.setCurrentText(edit_item['subjectName'])
 
         unit_in = QLineEdit(dlg); unit_in.setText(edit_item['unitName'] if edit_item else "")
         status_combo = QComboBox(dlg); status_combo.addItems(["Pending", "In Progress", "Completed"])
@@ -1154,13 +1155,27 @@ class StuntMainWindow(QMainWindow):
         lay.addWidget(btn_save)
 
         def save():
-            if unit_in.text() and sub_combo.count() > 0:
+            entered_sub = sub_combo.currentText().strip()
+            if unit_in.text() and entered_sub:
                 sub_id = sub_combo.currentData()
-                sub_obj = next((s for s in self.data['subjects'] if s['id'] == sub_id), None)
+                sub_obj = next((s for s in self.data['subjects'] if s['id'] == sub_id or s['name'].lower() in entered_sub.lower()), None)
+                if not sub_obj:
+                    sub_id = f"sub-{int(datetime.now().timestamp())}"
+                    sub_obj = {
+                        'id': sub_id,
+                        'sem': 1,
+                        'name': entered_sub,
+                        'code': entered_sub[:6].upper(),
+                        'faculty': 'Faculty',
+                        'targetPct': self.profile.get('targetAttendancePct', 75.0),
+                        'color': '#6366f1'
+                    }
+                    db.save_subject(sub_obj)
+
                 db.save_syllabus({
                     'id': edit_item['id'] if edit_item else f"syl-{int(datetime.now().timestamp())}",
-                    'subjectId': sub_id,
-                    'subjectName': sub_obj['name'] if sub_obj else 'Subject',
+                    'subjectId': sub_obj['id'],
+                    'subjectName': entered_sub,
                     'unitName': unit_in.text(),
                     'status': status_combo.currentText(),
                     'notes': notes_in.text()
@@ -1735,15 +1750,20 @@ class StuntMainWindow(QMainWindow):
         btn_save.clicked.connect(save)
         dlg.exec()
 
+    # EDITABLE WRITE-BY ATTENDANCE DIALOG
     def open_attendance_dialog(self, edit_item=None):
-        dlg = QDialog(self); dlg.setWindowTitle("Edit Attendance Record" if edit_item else "Log Attendance"); dlg.setFixedWidth(360)
+        dlg = QDialog(self); dlg.setWindowTitle("Edit Attendance Record" if edit_item else "Log Attendance Record"); dlg.setFixedWidth(380)
         lay = QVBoxLayout(dlg)
 
         sub_combo = QComboBox(dlg)
-        for s in self.data['subjects']: sub_combo.addItem(f"{s['name']} ({s['code']})", s['id'])
+        sub_combo.setEditable(True)
+        sub_combo.lineEdit().setPlaceholderText("Write or select subject name...")
+
+        for s in self.data['subjects']:
+            sub_combo.addItem(f"{s['name']} ({s['code']})", s['id'])
+
         if edit_item:
-            idx = sub_combo.findData(edit_item['subjectId'])
-            if idx != -1: sub_combo.setCurrentIndex(idx)
+            sub_combo.setCurrentText(edit_item['subjectName'])
 
         status_combo = QComboBox(dlg); status_combo.addItems(["Present", "Absent", "Leave", "Holiday"])
         if edit_item:
@@ -1753,30 +1773,46 @@ class StuntMainWindow(QMainWindow):
         date_in = QLineEdit(dlg); date_in.setText(edit_item['date'] if edit_item else date.today().strftime("%Y-%m-%d"))
         rem_in = QLineEdit(dlg); rem_in.setText(edit_item.get('remarks', '') if edit_item else "")
 
-        lay.addWidget(QLabel("Subject:", dlg)); lay.addWidget(sub_combo)
+        lay.addWidget(QLabel("Subject Name (Write or Select):", dlg)); lay.addWidget(sub_combo)
         lay.addWidget(QLabel("Status:", dlg)); lay.addWidget(status_combo)
-        lay.addWidget(QLabel("Date:", dlg)); lay.addWidget(date_in)
-        lay.addWidget(QLabel("Remarks:", dlg)); lay.addWidget(rem_in)
+        lay.addWidget(QLabel("Date (YYYY-MM-DD):", dlg)); lay.addWidget(date_in)
+        lay.addWidget(QLabel("Remarks / Topic / Lab:", dlg)); lay.addWidget(rem_in)
 
-        btn_save = QPushButton("Save Record", dlg); btn_save.setProperty("class", "primary")
+        btn_save = QPushButton("Save Attendance Record", dlg); btn_save.setProperty("class", "primary")
         lay.addWidget(btn_save)
 
         def save():
-            if sub_combo.count() > 0:
+            entered_sub = sub_combo.currentText().strip()
+            if entered_sub:
                 sub_id = sub_combo.currentData()
-                sub_obj = next((s for s in self.data['subjects'] if s['id'] == sub_id), None)
+                sub_obj = next((s for s in self.data['subjects'] if s['id'] == sub_id or s['name'].lower() in entered_sub.lower()), None)
+                if not sub_obj:
+                    sub_id = f"sub-{int(datetime.now().timestamp())}"
+                    sub_obj = {
+                        'id': sub_id,
+                        'sem': self.att_sem_combo.currentData() or 1,
+                        'name': entered_sub,
+                        'code': entered_sub[:6].upper(),
+                        'faculty': 'Faculty',
+                        'targetPct': self.profile.get('targetAttendancePct', 75.0),
+                        'color': '#6366f1'
+                    }
+                    db.save_subject(sub_obj)
+
                 db.save_attendance({
                     'id': edit_item['id'] if edit_item else f"att-{int(datetime.now().timestamp())}",
-                    'sem': sub_obj['sem'] if sub_obj else 1,
-                    'subjectId': sub_id,
-                    'subjectName': sub_obj['name'] if sub_obj else 'Subject',
+                    'sem': sub_obj['sem'],
+                    'subjectId': sub_obj['id'],
+                    'subjectName': entered_sub,
                     'date': date_in.text(),
                     'status': status_combo.currentText(),
                     'remarks': rem_in.text()
                 })
                 dlg.accept()
                 self.refresh_all_views()
-                self.send_notification("Attendance Recorded 📋", f'{status_combo.currentText()} logged for {sub_obj["name"] if sub_obj else "Subject"}')
+                self.send_notification("Attendance Recorded 📋", f'{status_combo.currentText()} logged for {entered_sub}')
+            else:
+                QMessageBox.warning(dlg, "Missing Subject", "Please write or select a subject name.")
 
         btn_save.clicked.connect(save)
         dlg.exec()
