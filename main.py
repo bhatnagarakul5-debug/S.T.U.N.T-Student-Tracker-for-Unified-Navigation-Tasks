@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QGraphicsOpacityEffect, QScrollArea, QGridLayout, QFormLayout,
     QSystemTrayIcon
 )
-from PyQt6.QtGui import QIcon, QPixmap, QColor, QFont, QImage
+from PyQt6.QtGui import QIcon, QPixmap, QColor, QFont, QImage, QDesktopServices
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 
@@ -316,7 +316,6 @@ class StuntVideoSplash(QDialog):
         self.video_widget = QVideoWidget(self)
         layout.addWidget(self.video_widget)
 
-        # Prominent Copyright Banner Overlay
         copy_banner = QFrame(self)
         copy_banner.setFixedHeight(45)
         copy_banner.setStyleSheet("background: #08090d; border-top: 1px solid rgba(255,255,255,0.1);")
@@ -339,7 +338,6 @@ class StuntVideoSplash(QDialog):
             self.media_player.setSource(QUrl.fromLocalFile(video_path))
             self.media_player.play()
 
-        # Literally Read Copyright Aloud via Windows Speech Synthesis Engine
         speak_text("Copyright 2026 Akul. All Rights Reserved. STUNT Platform.")
 
         self.timer = QTimer(self)
@@ -406,11 +404,80 @@ class CopyrightDialog(QDialog):
         btn_close.clicked.connect(self.accept)
         lay.addWidget(btn_close)
 
-        # Read aloud upon opening this window
         self.read_aloud()
 
     def read_aloud(self):
         speak_text("Copyright 2026 Akul. All Rights Reserved. All intellectual property belongs exclusively to Akul.")
+
+# Interactive Flashcard Viewer Window
+class FlashcardDialog(QDialog):
+    def __init__(self, flashcards, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Syllabus Flashcards Revision Matrix 🎴")
+        self.setFixedSize(500, 360)
+        self.flashcards = flashcards
+        self.idx = 0
+        self.showing_answer = False
+
+        lay = QVBoxLayout(self); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(16)
+
+        self.lbl_counter = QLabel(self); self.lbl_counter.setStyleSheet("color: #64748b; font-weight: bold;")
+        lay.addWidget(self.lbl_counter, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.card_box = QFrame(self); self.card_box.setProperty("class", "card"); self.card_box.setMinimumHeight(180)
+        cb_lay = QVBoxLayout(self.card_box)
+
+        self.lbl_subject = QLabel(self); self.lbl_subject.setStyleSheet("color: #0ea5e9; font-weight: bold;")
+        self.lbl_text = QLabel(self); self.lbl_text.setStyleSheet("font-size: 16px; font-weight: bold; color: #ffffff;"); self.lbl_text.setWordWrap(True)
+
+        cb_lay.addWidget(self.lbl_subject)
+        cb_lay.addWidget(self.lbl_text, alignment=Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(self.card_box)
+
+        nav_lay = QHBoxLayout()
+        btn_prev = QPushButton("◀ Previous", self); btn_prev.clicked.connect(self.prev_card)
+        self.btn_flip = QPushButton("🔄 Flip (Show Answer)", self); self.btn_flip.setProperty("class", "primary"); self.btn_flip.clicked.connect(self.flip_card)
+        btn_next = QPushButton("Next ▶", self); btn_next.clicked.connect(self.next_card)
+
+        nav_lay.addWidget(btn_prev); nav_lay.addWidget(self.btn_flip); nav_lay.addWidget(btn_next)
+        lay.addLayout(nav_lay)
+
+        self.render_card()
+
+    def render_card(self):
+        if not self.flashcards:
+            self.lbl_counter.setText("0 / 0")
+            self.lbl_subject.setText("No Flashcards")
+            self.lbl_text.setText("Add flashcards to start revision testing!")
+            return
+
+        fc = self.flashcards[self.idx]
+        self.lbl_counter.setText(f"Card {self.idx + 1} of {len(self.flashcards)}")
+        self.lbl_subject.setText(f"Subject: {fc['subjectName']}")
+        if self.showing_answer:
+            self.lbl_text.setText(f"ANSWER:\n\n{fc['answer']}")
+            self.lbl_text.setStyleSheet("font-size: 15px; font-weight: bold; color: #10b981;")
+            self.btn_flip.setText("🔄 Flip (Show Question)")
+        else:
+            self.lbl_text.setText(f"QUESTION:\n\n{fc['question']}")
+            self.lbl_text.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
+            self.btn_flip.setText("🔄 Flip (Show Answer)")
+
+    def flip_card(self):
+        self.showing_answer = not self.showing_answer
+        self.render_card()
+
+    def prev_card(self):
+        if self.flashcards:
+            self.idx = (self.idx - 1) % len(self.flashcards)
+            self.showing_answer = False
+            self.render_card()
+
+    def next_card(self):
+        if self.flashcards:
+            self.idx = (self.idx + 1) % len(self.flashcards)
+            self.showing_answer = False
+            self.render_card()
 
 # Task & Savings Celebration Window
 class TaskCelebrationWindow(QDialog):
@@ -659,7 +726,6 @@ class StuntMainWindow(QMainWindow):
 
         topbar_layout.addStretch()
 
-        # Dedicated Copyright Button & Reader
         btn_copy = QPushButton("© Copyright Notice", self); btn_copy.setStyleSheet("background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
         btn_copy.clicked.connect(self.open_copyright_dialog)
         topbar_layout.addWidget(btn_copy)
@@ -699,7 +765,7 @@ class StuntMainWindow(QMainWindow):
 
         main_layout.addWidget(workspace, stretch=1)
 
-        # 4. Right Diagnostics Drawer
+        # 4. Right Diagnostics Drawer with Gamified Badges
         self.drawer = QFrame(self); self.drawer.setProperty("class", "drawer"); self.drawer.setFixedWidth(240)
         drawer_layout = QVBoxLayout(self.drawer); drawer_layout.setContentsMargins(16, 16, 16, 16)
 
@@ -714,6 +780,15 @@ class StuntMainWindow(QMainWindow):
         self.lbl_drawer_college = QLabel(self.profile['college'], self); self.lbl_drawer_college.setStyleSheet("font-size: 11px; color: #64748b;")
         cs_lay.addWidget(self.lbl_drawer_student); cs_lay.addWidget(self.lbl_drawer_college)
         drawer_layout.addWidget(card_student)
+
+        # Gamified Student Achievement Badges Card
+        card_badges = QFrame(self); card_badges.setProperty("class", "card")
+        cb_lay = QVBoxLayout(card_badges)
+        cb_lay.addWidget(QLabel("🏆 STUDENT BADGES & XP", self))
+        self.lbl_badges = QLabel("🥇 Dean's List | 🟢 Bunk Master\n💰 Savings Master | ⏱️ Focus Beast", self)
+        self.lbl_badges.setStyleSheet("font-size: 11px; color: #f59e0b; font-weight: bold;")
+        cb_lay.addWidget(self.lbl_badges)
+        drawer_layout.addWidget(card_badges)
 
         card_copy = QFrame(self); card_copy.setProperty("class", "card")
         cc2_lay = QVBoxLayout(card_copy)
@@ -776,7 +851,7 @@ class StuntMainWindow(QMainWindow):
         elif index == 7: self.channels_list.addItem("Campus Photo Gallery")
         elif index == 8: self.channels_list.addItem("Milestone Timeline")
 
-    # 1. DASHBOARD VIEW
+    # 1. DASHBOARD VIEW (with Study Activity Heatmap Grid)
     def init_dashboard_view(self):
         view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(20)
 
@@ -824,12 +899,29 @@ class StuntMainWindow(QMainWindow):
         k5_lay.addWidget(self.kpi_task_val); kpi_lay.addWidget(k5)
 
         lay.addLayout(kpi_lay)
+
+        # 7-Day Activity Stream Heatmap Grid
+        heat_card = QFrame(self); heat_card.setProperty("class", "card"); hc_lay = QVBoxLayout(heat_card)
+        hc_lay.addWidget(QLabel("📈 7-DAY PRODUCTIVITY & STUDY ACTIVITY HEATMAP", self))
+
+        self.heat_grid_lay = QHBoxLayout()
+        for i in range(7):
+            day_box = QFrame(self); day_box.setFixedSize(60, 48); day_box.setStyleSheet("background: rgba(99, 102, 241, 0.2); border-radius: 6px;")
+            db_lay = QVBoxLayout(day_box); db_lay.setContentsMargins(4,4,4,4)
+            lbl = QLabel(f"Day {i+1}", day_box); lbl.setStyleSheet("font-size: 10px; color: #cbd5e1;"); lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            val = QLabel("Active", day_box); val.setStyleSheet("font-weight: bold; color: #10b981; font-size: 11px;"); val.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            db_lay.addWidget(lbl); db_lay.addWidget(val)
+            self.heat_grid_lay.addWidget(day_box)
+
+        hc_lay.addLayout(self.heat_grid_lay)
+        lay.addWidget(heat_card)
+
         lay.addStretch()
         self.views_stack.addWidget(view)
 
-    # 2. CGPA & GRADE INTELLIGENCE VIEW
+    # 2. CGPA & GRADE INTELLIGENCE VIEW (with "What-If" Calculator)
     def init_cgpa_view(self):
-        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24)
+        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(16)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("CGPA / SGPA Intelligence & Grade Ledger", self))
@@ -853,6 +945,22 @@ class StuntMainWindow(QMainWindow):
 
         lay.addWidget(cgpa_card)
 
+        # "What-If" Interactive CGPA Simulator Card
+        sim_card = QFrame(self); sim_card.setProperty("class", "card"); sc_lay = QHBoxLayout(sim_card)
+        sc_lay.addWidget(QLabel("📊 <b>What-If Simulator</b>: If expected SGPA in next semester is", self))
+        self.sim_sgpa_in = QLineEdit(self); self.sim_sgpa_in.setFixedWidth(70); self.sim_sgpa_in.setText("9.0")
+        sc_lay.addWidget(self.sim_sgpa_in)
+
+        btn_sim = QPushButton("Calculate Simulated CGPA", self); btn_sim.setProperty("class", "primary")
+        btn_sim.clicked.connect(self.run_whatif_simulation)
+        sc_lay.addWidget(btn_sim)
+
+        self.lbl_sim_res = QLabel("Simulated Result: --", self); self.lbl_sim_res.setStyleSheet("font-weight: bold; color: #10b981;")
+        sc_lay.addWidget(self.lbl_sim_res)
+        sc_lay.addStretch()
+
+        lay.addWidget(sim_card)
+
         self.grades_table = QTableWidget(self)
         self.grades_table.setColumnCount(6)
         self.grades_table.setHorizontalHeaderLabels(["Semester", "Subject Code", "Subject Name", "Credits", "Grade Points", "Actions"])
@@ -861,13 +969,34 @@ class StuntMainWindow(QMainWindow):
 
         self.views_stack.addWidget(view)
 
-    # 3. SYLLABUS & REVISION MATRIX VIEW
+    def run_whatif_simulation(self):
+        try:
+            exp_sgpa = float(self.sim_sgpa_in.text())
+            grades = self.data.get('grades', [])
+            done_sems = max(1, max((g['sem'] for g in grades), default=1))
+            total_pts = sum(g['credits'] * g['gradePoints'] for g in grades)
+            total_creds = sum(g['credits'] for g in grades)
+            cur_cgpa = (total_pts / total_creds) if total_creds > 0 else 0.0
+
+            sim_cgpa = ((cur_cgpa * done_sems) + exp_sgpa) / (done_sems + 1)
+            self.lbl_sim_res.setText(f"Simulated CGPA after Sem {done_sems+1}: {sim_cgpa:.2f}")
+        except ValueError:
+            QMessageBox.warning(self, "Invalid Input", "Enter a valid SGPA number between 0 and 10.")
+
+    # 3. SYLLABUS & REVISION MATRIX VIEW (with Flashcards & Notes Vault)
     def init_syllabus_view(self):
         view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(16)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("Exam Syllabus & Revision Matrix", self))
         hdr_lay.addStretch()
+
+        btn_fc = QPushButton("🎴 Launch Revision Flashcards", self); btn_fc.setProperty("class", "success"); btn_fc.clicked.connect(self.open_flashcards_modal)
+        hdr_lay.addWidget(btn_fc)
+
+        btn_add_note = QPushButton("📝 + Add PYQ / PDF Note", self); btn_add_note.clicked.connect(self.open_subject_note_dialog)
+        hdr_lay.addWidget(btn_add_note)
+
         btn_add_unit = QPushButton("📚 + Add Syllabus Unit", self); btn_add_unit.setProperty("class", "primary"); btn_add_unit.clicked.connect(self.open_syllabus_dialog)
         hdr_lay.addWidget(btn_add_unit)
         lay.addLayout(hdr_lay)
@@ -879,6 +1008,17 @@ class StuntMainWindow(QMainWindow):
         pc_lay.addWidget(self.syl_progress_bar)
         lay.addWidget(prog_card)
 
+        # PYQ & Notes Vault Section
+        notes_hdr = QLabel("📝 PYQ & PDF NOTES RESOURCE VAULT", self); notes_hdr.setProperty("class", "h3")
+        lay.addWidget(notes_hdr)
+
+        self.notes_table = QTableWidget(self)
+        self.notes_table.setColumnCount(5)
+        self.notes_table.setHorizontalHeaderLabels(["Subject", "Document Title", "Type", "Date", "Actions"])
+        self.notes_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.notes_table.setFixedHeight(120)
+        lay.addWidget(self.notes_table)
+
         self.syl_table = QTableWidget(self)
         self.syl_table.setColumnCount(5)
         self.syl_table.setHorizontalHeaderLabels(["Subject", "Unit / Topic Title", "Revision Status", "Notes", "Actions"])
@@ -886,6 +1026,24 @@ class StuntMainWindow(QMainWindow):
         lay.addWidget(self.syl_table)
 
         self.views_stack.addWidget(view)
+
+    def open_flashcards_modal(self):
+        fcs = self.data.get('flashcards', [])
+        dlg = FlashcardDialog(fcs, self)
+        dlg.exec()
+
+    def open_subject_note_dialog(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select PDF / Note File", "", "All Documents (*.pdf *.png *.jpg *.txt *.docx);;All Files (*)")
+        if file_path:
+            db.save_subject_note({
+                'id': f"sn-{int(datetime.now().timestamp())}",
+                'subjectName': 'Computer Science',
+                'title': os.path.basename(file_path),
+                'fileType': os.path.splitext(file_path)[1].replace('.', '').upper() or 'FILE',
+                'filePath': file_path,
+                'date': date.today().strftime("%Y-%m-%d")
+            })
+            self.refresh_all_views()
 
     # 4. TASKS & POMODORO VIEW
     def init_tasks_view(self):
@@ -980,13 +1138,16 @@ class StuntMainWindow(QMainWindow):
 
         self.views_stack.addWidget(view)
 
-    # 6. FINANCE & TARGETED SAVINGS VIEW
+    # 6. FINANCE & TARGETED SAVINGS VIEW (with Roommate Group Expense Splitter)
     def init_finance_view(self):
         view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(16)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("Finance Ledger & Targeted Savings Goals", self))
         hdr_lay.addStretch()
+
+        btn_split = QPushButton("🧾 + Split Bill / Expense", self); btn_split.clicked.connect(self.open_group_expense_dialog)
+        hdr_lay.addWidget(btn_split)
 
         btn_add_sg = QPushButton("🎯 + New Savings Goal", self); btn_add_sg.setProperty("class", "success"); btn_add_sg.clicked.connect(self.open_savings_goal_dialog)
         hdr_lay.addWidget(btn_add_sg)
@@ -998,6 +1159,19 @@ class StuntMainWindow(QMainWindow):
         hdr_lay.addWidget(btn_log_exp)
 
         lay.addLayout(hdr_lay)
+
+        # Roommate Group Expense Splitter Card
+        ge_card = QFrame(self); ge_card.setProperty("class", "card"); gec_lay = QVBoxLayout(ge_card)
+        gec_lay.addWidget(QLabel("🧾 ROOMMATE & GROUP EXPENSE SPLITTER", self))
+
+        self.ge_table = QTableWidget(self)
+        self.ge_table.setColumnCount(6)
+        self.ge_table.setHorizontalHeaderLabels(["Date", "Title / Bill", "Total Bill", "Paid By", "Share Per Person", "Actions"])
+        self.ge_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.ge_table.setFixedHeight(110)
+        gec_lay.addWidget(self.ge_table)
+
+        lay.addWidget(ge_card)
 
         sg_header = QLabel("🎯 TARGETED SAVINGS GOALS & WISHLIST", self); sg_header.setProperty("class", "h3")
         lay.addWidget(sg_header)
@@ -1024,13 +1198,58 @@ class StuntMainWindow(QMainWindow):
 
         self.views_stack.addWidget(view)
 
-    # 7. TIMETABLE VIEW
+    def open_group_expense_dialog(self):
+        dlg = QDialog(self); dlg.setWindowTitle("Split Bill / Group Expense"); dlg.setFixedWidth(360)
+        lay = QVBoxLayout(dlg)
+
+        title_in = QLineEdit(dlg); title_in.setPlaceholderText("e.g. Hostel Wi-Fi, Trip, Dinner")
+        tot_in = QLineEdit(dlg); tot_in.setPlaceholderText("Total Bill Amount (₹)")
+        paid_in = QLineEdit(dlg); paid_in.setText("Akul")
+        count_in = QLineEdit(dlg); count_in.setText("3")
+
+        lay.addWidget(QLabel("Bill Title:", dlg)); lay.addWidget(title_in)
+        lay.addWidget(QLabel("Total Amount (₹):", dlg)); lay.addWidget(tot_in)
+        lay.addWidget(QLabel("Paid By:", dlg)); lay.addWidget(paid_in)
+        lay.addWidget(QLabel("Total People Splitting:", dlg)); lay.addWidget(count_in)
+
+        btn_save = QPushButton("Calculate & Save Split", dlg); btn_save.setProperty("class", "primary")
+        lay.addWidget(btn_save)
+
+        def save():
+            try:
+                tot = float(tot_in.text())
+                cnt = int(count_in.text())
+                share = tot / max(1, cnt)
+
+                db.save_group_expense({
+                    'id': f"ge-{int(datetime.now().timestamp())}",
+                    'title': title_in.text(),
+                    'totalAmount': tot,
+                    'paidBy': paid_in.text(),
+                    'peopleCount': cnt,
+                    'sharePerPerson': share,
+                    'date': date.today().strftime("%Y-%m-%d"),
+                    'notes': f"Split between {cnt} people"
+                })
+                dlg.accept()
+                self.refresh_all_views()
+            except ValueError:
+                pass
+
+        btn_save.clicked.connect(save)
+        dlg.exec()
+
+    # 7. TIMETABLE VIEW (with .ics Export)
     def init_timetable_view(self):
         view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("Weekly Lecture Timetable", self))
         hdr_lay.addStretch()
+
+        btn_ics = QPushButton("📅 Export .ics Calendar File", self); btn_ics.setProperty("class", "success"); btn_ics.clicked.connect(self.export_ics_calendar)
+        hdr_lay.addWidget(btn_ics)
+
         btn_add_slot = QPushButton("+ Add Class Slot", self); btn_add_slot.clicked.connect(self.open_timetable_dialog)
         hdr_lay.addWidget(btn_add_slot)
         lay.addLayout(hdr_lay)
@@ -1042,6 +1261,28 @@ class StuntMainWindow(QMainWindow):
         lay.addWidget(self.tt_table)
 
         self.views_stack.addWidget(view)
+
+    def export_ics_calendar(self):
+        file_path, _ = QFileDialog.getSaveFileName(self, "Export Timetable .ics Calendar", "STUNT_Timetable.ics", "iCalendar Files (*.ics);;All Files (*)")
+        if file_path:
+            ics_lines = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//STUNT Platform//NONSGML Timetable Calendar//EN"
+            ]
+            for slot in self.data['timetable']:
+                ics_lines.extend([
+                    "BEGIN:VEVENT",
+                    f"SUMMARY:{slot['subject']} ({slot['location']})",
+                    f"DESCRIPTION:Instructor: {slot['instructor']} | Day: {slot['day']}",
+                    f"LOCATION:{slot['location']}",
+                    "END:VEVENT"
+                ])
+            ics_lines.append("END:VCALENDAR")
+
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write("\n".join(ics_lines))
+            QMessageBox.information(self, "ICS Calendar Exported", f".ics file exported to {file_path}!\nYou can double-click it to open in Google Calendar, Apple Calendar, or Outlook.")
 
     # 8. MEMORIES VIEW
     def init_memories_view(self):
@@ -1184,6 +1425,8 @@ class StuntMainWindow(QMainWindow):
         self.lbl_task_summary.setText(f"Task Completion Progress: {c_tasks} of {len(tasks)} Tasks Completed ({t_pct:.0f}%)")
         self.task_progress_bar.setValue(int(t_pct))
 
+        self.refresh_notes_table()
+        self.refresh_group_expenses_table()
         self.refresh_syllabus_table()
         self.refresh_savings_goals_cards()
         self.refresh_grades_table()
@@ -1195,6 +1438,52 @@ class StuntMainWindow(QMainWindow):
         self.refresh_milestones_table()
 
         self.finance_canvas.update_charts(self.data['finances'])
+
+    # REFRESH NOTES TABLE
+    def refresh_notes_table(self):
+        notes = self.data.get('subjectNotes', [])
+        self.notes_table.setRowCount(len(notes))
+        for row, sn in enumerate(notes):
+            self.notes_table.setItem(row, 0, QTableWidgetItem(sn['subjectName']))
+            self.notes_table.setItem(row, 1, QTableWidgetItem(sn['title']))
+            self.notes_table.setItem(row, 2, QTableWidgetItem(sn['fileType']))
+            self.notes_table.setItem(row, 3, QTableWidgetItem(sn['date']))
+
+            act_widget = QWidget(self)
+            act_lay = QHBoxLayout(act_widget); act_lay.setContentsMargins(0, 0, 0, 0); act_lay.setSpacing(4)
+
+            btn_open = QPushButton("Open File 📂", self); btn_open.setProperty("class", "primary")
+            btn_open.clicked.connect(lambda checked, path=sn['filePath']: QDesktopServices.openUrl(QUrl.fromLocalFile(path)))
+            act_lay.addWidget(btn_open)
+
+            btn_del = QPushButton("Delete", self); btn_del.setProperty("class", "danger")
+            btn_del.clicked.connect(lambda checked, snid=sn['id']: self.delete_note(snid))
+            act_lay.addWidget(btn_del)
+
+            self.notes_table.setCellWidget(row, 4, act_widget)
+
+    def delete_note(self, snid):
+        db.delete_subject_note(snid)
+        self.refresh_all_views()
+
+    # REFRESH GROUP EXPENSES TABLE
+    def refresh_group_expenses_table(self):
+        ges = self.data.get('groupExpenses', [])
+        self.ge_table.setRowCount(len(ges))
+        for row, ge in enumerate(ges):
+            self.ge_table.setItem(row, 0, QTableWidgetItem(ge['date']))
+            self.ge_table.setItem(row, 1, QTableWidgetItem(ge['title']))
+            self.ge_table.setItem(row, 2, QTableWidgetItem(f"₹{ge['totalAmount']:,.0f}"))
+            self.ge_table.setItem(row, 3, QTableWidgetItem(ge['paidBy']))
+            self.ge_table.setItem(row, 4, QTableWidgetItem(f"₹{ge['sharePerPerson']:,.0f} ({ge['peopleCount']} ppl)"))
+
+            btn_del = QPushButton("Delete", self); btn_del.setProperty("class", "danger")
+            btn_del.clicked.connect(lambda checked, geid=ge['id']: self.delete_ge(geid))
+            self.ge_table.setCellWidget(row, 5, btn_del)
+
+    def delete_ge(self, geid):
+        db.delete_group_expense(geid)
+        self.refresh_all_views()
 
     # SYLLABUS TABLE
     def refresh_syllabus_table(self):
@@ -2120,6 +2409,9 @@ class StuntMainWindow(QMainWindow):
                     for tt in parsed.get('timetable', []): db.save_timetable(tt)
                     for mem in parsed.get('memories', []): db.save_memory(mem)
                     for ms in parsed.get('milestones', []): db.save_milestone(ms)
+                    for ge in parsed.get('groupExpenses', []): db.save_group_expense(ge)
+                    for fc in parsed.get('flashcards', []): db.save_flashcard(fc)
+                    for sn in parsed.get('subjectNotes', []): db.save_subject_note(sn)
                     self.refresh_all_views()
                     QMessageBox.information(self, "Success", "Database restored successfully!")
             except Exception as e:

@@ -176,6 +176,43 @@ def init_db():
         )
     ''')
 
+    # 11. Group Expenses Table (Splitwise style)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS group_expenses (
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            totalAmount REAL,
+            paidBy TEXT,
+            peopleCount INTEGER,
+            sharePerPerson REAL,
+            date TEXT,
+            notes TEXT
+        )
+    ''')
+
+    # 12. Flashcards Table (Revision Cards)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS flashcards (
+            id TEXT PRIMARY KEY,
+            subjectName TEXT,
+            question TEXT,
+            answer TEXT,
+            status TEXT
+        )
+    ''')
+
+    # 13. Subject PYQ & PDF Notes Vault Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS subject_notes (
+            id TEXT PRIMARY KEY,
+            subjectName TEXT,
+            title TEXT,
+            fileType TEXT,
+            filePath TEXT,
+            date TEXT
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
@@ -223,6 +260,9 @@ def get_all_data():
     timetable = [dict(row) for row in cursor.execute('SELECT * FROM timetable').fetchall()]
     memories = [dict(row) for row in cursor.execute('SELECT * FROM memories ORDER BY date DESC').fetchall()]
     milestones = [dict(row) for row in cursor.execute('SELECT * FROM milestones ORDER BY date ASC').fetchall()]
+    group_expenses = [dict(row) for row in cursor.execute('SELECT * FROM group_expenses ORDER BY date DESC').fetchall()]
+    flashcards = [dict(row) for row in cursor.execute('SELECT * FROM flashcards').fetchall()]
+    subject_notes = [dict(row) for row in cursor.execute('SELECT * FROM subject_notes ORDER BY date DESC').fetchall()]
 
     conn.close()
     return {
@@ -236,7 +276,10 @@ def get_all_data():
         'finances': finances,
         'timetable': timetable,
         'memories': memories,
-        'milestones': milestones
+        'milestones': milestones,
+        'groupExpenses': group_expenses,
+        'flashcards': flashcards,
+        'subjectNotes': subject_notes
     }
 
 def save_syllabus(syl_dict):
@@ -389,6 +432,52 @@ def delete_milestone(ms_id):
     conn.commit()
     conn.close()
 
+# New Offline Helpers: Group Expenses, Flashcards, Subject Notes
+def save_group_expense(ge_dict):
+    conn = get_connection()
+    conn.execute('''
+        INSERT OR REPLACE INTO group_expenses (id, title, totalAmount, paidBy, peopleCount, sharePerPerson, date, notes)
+        VALUES (:id, :title, :totalAmount, :paidBy, :peopleCount, :sharePerPerson, :date, :notes)
+    ''', ge_dict)
+    conn.commit()
+    conn.close()
+
+def delete_group_expense(ge_id):
+    conn = get_connection()
+    conn.execute('DELETE FROM group_expenses WHERE id = ?', (ge_id,))
+    conn.commit()
+    conn.close()
+
+def save_flashcard(fc_dict):
+    conn = get_connection()
+    conn.execute('''
+        INSERT OR REPLACE INTO flashcards (id, subjectName, question, answer, status)
+        VALUES (:id, :subjectName, :question, :answer, :status)
+    ''', fc_dict)
+    conn.commit()
+    conn.close()
+
+def delete_flashcard(fc_id):
+    conn = get_connection()
+    conn.execute('DELETE FROM flashcards WHERE id = ?', (fc_id,))
+    conn.commit()
+    conn.close()
+
+def save_subject_note(sn_dict):
+    conn = get_connection()
+    conn.execute('''
+        INSERT OR REPLACE INTO subject_notes (id, subjectName, title, fileType, filePath, date)
+        VALUES (:id, :subjectName, :title, :fileType, :filePath, :date)
+    ''', sn_dict)
+    conn.commit()
+    conn.close()
+
+def delete_subject_note(sn_id):
+    conn = get_connection()
+    conn.execute('DELETE FROM subject_notes WHERE id = ?', (sn_id,))
+    conn.commit()
+    conn.close()
+
 def clear_all():
     conn = get_connection()
     cursor = conn.cursor()
@@ -402,6 +491,9 @@ def clear_all():
     cursor.execute('DELETE FROM timetable')
     cursor.execute('DELETE FROM memories')
     cursor.execute('DELETE FROM milestones')
+    cursor.execute('DELETE FROM group_expenses')
+    cursor.execute('DELETE FROM flashcards')
+    cursor.execute('DELETE FROM subject_notes')
     conn.commit()
     conn.close()
 
@@ -449,6 +541,15 @@ def load_sample_data():
         ],
         'milestones': [
             {'id': 'ms-1', 'category': 'Fest', 'title': 'College Orientation & Semester 1 Kickoff', 'date': '2026-08-01', 'desc': 'Started 5-Year College Journey (2026-2031) under STUNT Platform!'}
+        ],
+        'flashcards': [
+            {'id': 'fc-1', 'subjectName': 'Computer Programming & C', 'question': 'What is the difference between malloc() and calloc()?', 'answer': 'malloc() allocates uninitialized memory block, while calloc() allocates and initializes memory to zero.', 'status': 'Mastered'}
+        ],
+        'groupExpenses': [
+            {'id': 'ge-1', 'title': 'Hostel Room Wi-Fi Bill', 'totalAmount': 1200.0, 'paidBy': 'Akul', 'peopleCount': 3, 'sharePerPerson': 400.0, 'date': '2026-08-01', 'notes': 'Shared between Akul, Rohan, and Alex'}
+        ],
+        'subjectNotes': [
+            {'id': 'sn-1', 'subjectName': 'Computer Programming & C', 'title': 'C Programming Mid-Term PYQs (2024-2025)', 'fileType': 'PDF', 'filePath': 'assets/RedandBlackGlitchcoreStuntLogo.png', 'date': '2026-08-01'}
         ]
     }
     for syl in sample['syllabus']: save_syllabus(syl)
@@ -461,6 +562,9 @@ def load_sample_data():
     for tt in sample['timetable']: save_timetable(tt)
     for mem in sample['memories']: save_memory(mem)
     for ms in sample['milestones']: save_milestone(ms)
+    for ge in sample['groupExpenses']: save_group_expense(ge)
+    for fc in sample['flashcards']: save_flashcard(fc)
+    for sn in sample['subjectNotes']: save_subject_note(sn)
 
 if __name__ == '__main__':
     init_db()
