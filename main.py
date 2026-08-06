@@ -8,11 +8,12 @@ import os
 import json
 import base64
 import math
+import threading
 from datetime import datetime, date, timedelta
 
 import db
 
-from PyQt6.QtCore import Qt, QTimer, QUrl, QSize
+from PyQt6.QtCore import Qt, QTimer, QUrl, QSize, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QLineEdit, QDialog, QTableWidget,
@@ -30,6 +31,17 @@ import matplotlib
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+
+# Native Speech Synthesis Engine for Reading Copyright Aloud
+def speak_text(text):
+    def run_speech():
+        try:
+            import win32com.client
+            speaker = win32com.client.Dispatch("SAPI.SpVoice")
+            speaker.Speak(text)
+        except Exception:
+            pass
+    threading.Thread(target=run_speech, daemon=True).start()
 
 THEMES = {
     "Glitchcore Dark": {
@@ -290,12 +302,12 @@ class CgpaChartCanvas(FigureCanvas):
             self.ax.text(0.5, 0.5, 'Log Grades to view SGPA Trend', color='#64748b', ha='center', va='center', fontsize=11)
         self.draw()
 
-# Native Video Opening Splash Window
+# Native Video Opening Splash Window with Audio Speech Copyright Reader
 class StuntVideoSplash(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("STUNT Platform")
-        self.setFixedSize(640, 480)
+        self.setFixedSize(640, 520)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
 
         layout = QVBoxLayout(self)
@@ -303,6 +315,19 @@ class StuntVideoSplash(QDialog):
 
         self.video_widget = QVideoWidget(self)
         layout.addWidget(self.video_widget)
+
+        # Prominent Copyright Banner Overlay
+        copy_banner = QFrame(self)
+        copy_banner.setFixedHeight(45)
+        copy_banner.setStyleSheet("background: #08090d; border-top: 1px solid rgba(255,255,255,0.1);")
+        c_lay = QHBoxLayout(copy_banner)
+        c_lay.setContentsMargins(16, 0, 16, 0)
+
+        lbl_copy = QLabel("© 2026 Akul. All Rights Reserved. STUNT Platform", copy_banner)
+        lbl_copy.setStyleSheet("color: #10b981; font-weight: bold; font-size: 13px;")
+        c_lay.addWidget(lbl_copy, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        layout.addWidget(copy_banner)
 
         self.media_player = QMediaPlayer(self)
         self.audio_output = QAudioOutput(self)
@@ -313,6 +338,9 @@ class StuntVideoSplash(QDialog):
         if os.path.exists(video_path):
             self.media_player.setSource(QUrl.fromLocalFile(video_path))
             self.media_player.play()
+
+        # Literally Read Copyright Aloud via Windows Speech Synthesis Engine
+        speak_text("Copyright 2026 Akul. All Rights Reserved. STUNT Platform.")
 
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
@@ -326,6 +354,63 @@ class StuntVideoSplash(QDialog):
             self.accept()
         else:
             super().keyPressEvent(event)
+
+# Dedicated Copyright Notice & Audio Speech Window
+class CopyrightDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Official Copyright & Ownership Notice")
+        self.setFixedWidth(460)
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(24, 24, 24, 24)
+        lay.setSpacing(16)
+
+        hdr = QLabel("© Copyright & Legal Notice", self)
+        hdr.setProperty("class", "h1")
+        hdr.setStyleSheet("color: #10b981;")
+        lay.addWidget(hdr, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        card = QFrame(self); card.setProperty("class", "card")
+        c_lay = QVBoxLayout(card); c_lay.setSpacing(10)
+
+        lbl_c1 = QLabel("Copyright © 2026 Akul.", self)
+        lbl_c1.setStyleSheet("font-size: 16px; font-weight: bold; color: #ffffff;")
+        c_lay.addWidget(lbl_c1, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        lbl_c2 = QLabel("ALL RIGHTS RESERVED.", self)
+        lbl_c2.setStyleSheet("font-size: 14px; font-weight: bold; color: #f43f5e;")
+        c_lay.addWidget(lbl_c2, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        desc = QLabel(
+            "This software application, STUNT (Student Tracker for Unified Navigation & Tasks), "
+            "including all source code, algorithms, custom graphical user interfaces, assets, "
+            "and design systems, is the exclusive intellectual property of Akul.\n\n"
+            "No part of this application may be copied, reproduced, modified, republished, "
+            "or distributed without explicit written authorization from the copyright holder.",
+            self
+        )
+        desc.setWordWrap(True)
+        desc.setStyleSheet("color: #cbd5e1; font-size: 12px; line-height: 1.5;")
+        c_lay.addWidget(desc)
+
+        lay.addWidget(card)
+
+        btn_speak = QPushButton("🔊 Read Copyright Aloud", self)
+        btn_speak.setProperty("class", "success")
+        btn_speak.clicked.connect(self.read_aloud)
+        lay.addWidget(btn_speak)
+
+        btn_close = QPushButton("I Understand", self)
+        btn_close.setProperty("class", "primary")
+        btn_close.clicked.connect(self.accept)
+        lay.addWidget(btn_close)
+
+        # Read aloud upon opening this window
+        self.read_aloud()
+
+    def read_aloud(self):
+        speak_text("Copyright 2026 Akul. All Rights Reserved. All intellectual property belongs exclusively to Akul.")
 
 # Task & Savings Celebration Window
 class TaskCelebrationWindow(QDialog):
@@ -574,6 +659,11 @@ class StuntMainWindow(QMainWindow):
 
         topbar_layout.addStretch()
 
+        # Dedicated Copyright Button & Reader
+        btn_copy = QPushButton("© Copyright Notice", self); btn_copy.setStyleSheet("background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
+        btn_copy.clicked.connect(self.open_copyright_dialog)
+        topbar_layout.addWidget(btn_copy)
+
         btn_exp_pdf = QPushButton("📄 Export Report", self); btn_exp_pdf.setProperty("class", "primary"); btn_exp_pdf.clicked.connect(self.export_pdf_report)
         topbar_layout.addWidget(btn_exp_pdf)
 
@@ -625,6 +715,13 @@ class StuntMainWindow(QMainWindow):
         cs_lay.addWidget(self.lbl_drawer_student); cs_lay.addWidget(self.lbl_drawer_college)
         drawer_layout.addWidget(card_student)
 
+        card_copy = QFrame(self); card_copy.setProperty("class", "card")
+        cc2_lay = QVBoxLayout(card_copy)
+        cc2_lay.addWidget(QLabel("LEGAL COPYRIGHT", self))
+        lbl_copy_drawer = QLabel("© 2026 Akul\nAll Rights Reserved.", self); lbl_copy_drawer.setStyleSheet("color: #10b981; font-weight: bold;")
+        cc2_lay.addWidget(lbl_copy_drawer)
+        drawer_layout.addWidget(card_copy)
+
         card_target = QFrame(self); card_target.setProperty("class", "card")
         ct_lay = QVBoxLayout(card_target)
         ct_lay.addWidget(QLabel("UNIVERSITY MIN ATTENDANCE", self))
@@ -644,6 +741,10 @@ class StuntMainWindow(QMainWindow):
 
         self.switch_view(0)
         self.refresh_all_views()
+
+    def open_copyright_dialog(self):
+        dlg = CopyrightDialog(self)
+        dlg.exec()
 
     def open_edit_profile_dialog(self):
         dlg = EditProfileDialog(self, self.profile)
@@ -1224,6 +1325,7 @@ class StuntMainWindow(QMainWindow):
                     <p><b>Course:</b> {p.get('course')} | <b>Batch:</b> {p.get('batch')}</p>
                     <p><b>Cumulative CGPA:</b> {cgpa:.2f} | <b>Target CGPA:</b> {p.get('targetCgpa')}</p>
                     <p><b>Net Wallet Balance:</b> ₹{inc - exp:,.0f} | <b>Monthly Budget Cap:</b> ₹{p.get('monthlyBudgetCap'):,.0f}</p>
+                    <p><b>Copyright Notice:</b> © 2026 Akul. All Rights Reserved.</p>
                 </div>
 
                 <div class="card">
@@ -1960,6 +2062,10 @@ class StuntMainWindow(QMainWindow):
     def open_settings_dialog(self):
         dlg = QDialog(self); dlg.setWindowTitle("System Settings & Data Management"); dlg.setFixedWidth(380)
         lay = QVBoxLayout(dlg)
+
+        btn_copy_aud = QPushButton("🔊 Read Copyright Notice Aloud", dlg); btn_copy_aud.setStyleSheet("background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
+        btn_copy_aud.clicked.connect(self.open_copyright_dialog)
+        lay.addWidget(btn_copy_aud)
 
         btn_exp_pdf = QPushButton("📄 Export Academic & Financial Report", dlg); btn_exp_pdf.setProperty("class", "primary")
         btn_exp_pdf.clicked.connect(self.export_pdf_report)
