@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem, QHeaderView, QStackedWidget, QProgressBar, QFrame,
     QFileDialog, QMessageBox, QTabWidget, QListWidget, QListWidgetItem,
     QTextEdit, QGraphicsOpacityEffect, QScrollArea, QGridLayout, QFormLayout,
-    QSystemTrayIcon
+    QSystemTrayIcon, QSplitter
 )
 from PyQt6.QtGui import QIcon, QPixmap, QColor, QFont, QImage, QDesktopServices
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
@@ -219,6 +219,45 @@ QHeaderView::section {{
 QTableWidget::item {{
     padding: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}}
+
+QSplitter::handle {{
+    background-color: rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+}}
+
+QSplitter::handle:hover {{
+    background-color: {t['primary']};
+}}
+
+QSplitter::handle:vertical {{
+    height: 8px;
+    margin: 2px 0px;
+}}
+
+QSplitter::handle:horizontal {{
+    width: 8px;
+    margin: 0px 2px;
+}}
+
+QScrollArea {{
+    background: transparent;
+    border: none;
+}}
+
+QScrollBar:vertical {{
+    background: #08090d;
+    width: 10px;
+    border-radius: 5px;
+}}
+
+QScrollBar::handle:vertical {{
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}}
+
+QScrollBar::handle:vertical:hover {{
+    background: {t['primary']};
 }}
 """
 
@@ -851,9 +890,14 @@ class StuntMainWindow(QMainWindow):
         elif index == 7: self.channels_list.addItem("Campus Photo Gallery")
         elif index == 8: self.channels_list.addItem("Milestone Timeline")
 
-    # 1. DASHBOARD VIEW (with Study Activity Heatmap Grid)
+    # 1. DASHBOARD VIEW (with Study Activity Heatmap Grid & ScrollArea)
     def init_dashboard_view(self):
-        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(20)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+
+        content = QWidget()
+        lay = QVBoxLayout(content); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(20)
 
         hero = QFrame(self); hero.setProperty("class", "hero-card"); hero_lay = QVBoxLayout(hero)
         self.lbl_journey_dates = QLabel("Academic Degree Journey", self); self.lbl_journey_dates.setProperty("class", "h2")
@@ -917,18 +961,25 @@ class StuntMainWindow(QMainWindow):
         lay.addWidget(heat_card)
 
         lay.addStretch()
-        self.views_stack.addWidget(view)
+        scroll.setWidget(content)
+        self.views_stack.addWidget(scroll)
 
-    # 2. CGPA & GRADE INTELLIGENCE VIEW (with "What-If" Calculator)
+    # 2. CGPA & GRADE INTELLIGENCE VIEW (with Draggable Size Ratio Splitter)
     def init_cgpa_view(self):
-        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(16)
+        view = QWidget(self); main_lay = QVBoxLayout(view); main_lay.setContentsMargins(24, 24, 24, 24); main_lay.setSpacing(12)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("CGPA / SGPA Intelligence & Grade Ledger", self))
         hdr_lay.addStretch()
         btn_add_g = QPushButton("+ Log Subject Grade", self); btn_add_g.setProperty("class", "primary"); btn_add_g.clicked.connect(self.open_grade_dialog)
         hdr_lay.addWidget(btn_add_g)
-        lay.addLayout(hdr_lay)
+        main_lay.addLayout(hdr_lay)
+
+        splitter = QSplitter(Qt.Orientation.Vertical, self)
+
+        # Top Panel: CGPA Card + What-If Simulator Card
+        top_w = QWidget()
+        top_lay = QVBoxLayout(top_w); top_lay.setContentsMargins(0, 0, 0, 0); top_lay.setSpacing(12)
 
         cgpa_card = QFrame(self); cgpa_card.setProperty("class", "card")
         cc_lay = QHBoxLayout(cgpa_card)
@@ -942,10 +993,8 @@ class StuntMainWindow(QMainWindow):
 
         self.cgpa_canvas = CgpaChartCanvas(self, width=6, height=2.5, dpi=100)
         cc_lay.addWidget(self.cgpa_canvas)
+        top_lay.addWidget(cgpa_card)
 
-        lay.addWidget(cgpa_card)
-
-        # "What-If" Interactive CGPA Simulator Card
         sim_card = QFrame(self); sim_card.setProperty("class", "card"); sc_lay = QHBoxLayout(sim_card)
         sc_lay.addWidget(QLabel("📊 <b>What-If Simulator</b>: If expected SGPA in next semester is", self))
         self.sim_sgpa_in = QLineEdit(self); self.sim_sgpa_in.setFixedWidth(70); self.sim_sgpa_in.setText("9.0")
@@ -958,15 +1007,25 @@ class StuntMainWindow(QMainWindow):
         self.lbl_sim_res = QLabel("Simulated Result: --", self); self.lbl_sim_res.setStyleSheet("font-weight: bold; color: #10b981;")
         sc_lay.addWidget(self.lbl_sim_res)
         sc_lay.addStretch()
+        top_lay.addWidget(sim_card)
 
-        lay.addWidget(sim_card)
+        splitter.addWidget(top_w)
+
+        # Bottom Panel: Grades Ledger Table Container
+        bot_w = QWidget()
+        bot_lay = QVBoxLayout(bot_w); bot_lay.setContentsMargins(0, 0, 0, 0); bot_lay.setSpacing(6)
+        bot_lay.addWidget(QLabel("📜 GRADES & SGPA LEDGER (Drag horizontal bar above to adjust size ratio)", self))
 
         self.grades_table = QTableWidget(self)
         self.grades_table.setColumnCount(6)
         self.grades_table.setHorizontalHeaderLabels(["Semester", "Subject Code", "Subject Name", "Credits", "Grade Points", "Actions"])
         self.grades_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        lay.addWidget(self.grades_table)
+        bot_lay.addWidget(self.grades_table)
 
+        splitter.addWidget(bot_w)
+        splitter.setSizes([320, 480])
+
+        main_lay.addWidget(splitter)
         self.views_stack.addWidget(view)
 
     def run_whatif_simulation(self):
@@ -983,9 +1042,9 @@ class StuntMainWindow(QMainWindow):
         except ValueError:
             QMessageBox.warning(self, "Invalid Input", "Enter a valid SGPA number between 0 and 10.")
 
-    # 3. SYLLABUS & REVISION MATRIX VIEW (with Flashcards & Notes Vault)
+    # 3. SYLLABUS & REVISION MATRIX VIEW (with Draggable Size Ratio Splitter)
     def init_syllabus_view(self):
-        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(16)
+        view = QWidget(self); main_lay = QVBoxLayout(view); main_lay.setContentsMargins(24, 24, 24, 24); main_lay.setSpacing(12)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("Exam Syllabus & Revision Matrix", self))
@@ -999,32 +1058,45 @@ class StuntMainWindow(QMainWindow):
 
         btn_add_unit = QPushButton("📚 + Add Syllabus Unit", self); btn_add_unit.setProperty("class", "primary"); btn_add_unit.clicked.connect(self.open_syllabus_dialog)
         hdr_lay.addWidget(btn_add_unit)
-        lay.addLayout(hdr_lay)
+        main_lay.addLayout(hdr_lay)
 
         prog_card = QFrame(self); prog_card.setProperty("class", "card"); pc_lay = QVBoxLayout(prog_card)
         self.lbl_syl_summary = QLabel("Syllabus Revision Progress: 0 of 0 Units Completed (0%)", self); self.lbl_syl_summary.setStyleSheet("font-weight: bold; color: #ffffff;")
         pc_lay.addWidget(self.lbl_syl_summary)
         self.syl_progress_bar = QProgressBar(self); self.syl_progress_bar.setFixedHeight(8)
         pc_lay.addWidget(self.syl_progress_bar)
-        lay.addWidget(prog_card)
+        main_lay.addWidget(prog_card)
 
-        # PYQ & Notes Vault Section
-        notes_hdr = QLabel("📝 PYQ & PDF NOTES RESOURCE VAULT", self); notes_hdr.setProperty("class", "h3")
-        lay.addWidget(notes_hdr)
+        splitter = QSplitter(Qt.Orientation.Vertical, self)
+
+        # Top Panel: PYQ Notes Vault
+        top_w = QWidget()
+        top_lay = QVBoxLayout(top_w); top_lay.setContentsMargins(0, 0, 0, 0); top_lay.setSpacing(6)
+        notes_hdr = QLabel("📝 PYQ & PDF NOTES RESOURCE VAULT (Drag bar below to adjust size ratio)", self); notes_hdr.setProperty("class", "h3")
+        top_lay.addWidget(notes_hdr)
 
         self.notes_table = QTableWidget(self)
         self.notes_table.setColumnCount(5)
         self.notes_table.setHorizontalHeaderLabels(["Subject", "Document Title", "Type", "Date", "Actions"])
         self.notes_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.notes_table.setFixedHeight(120)
-        lay.addWidget(self.notes_table)
+        top_lay.addWidget(self.notes_table)
+        splitter.addWidget(top_w)
+
+        # Bottom Panel: Syllabus Table
+        bot_w = QWidget()
+        bot_lay = QVBoxLayout(bot_w); bot_lay.setContentsMargins(0, 0, 0, 0); bot_lay.setSpacing(6)
+        syl_hdr = QLabel("📚 EXAM SYLLABUS & REVISION UNITS TABLE", self); syl_hdr.setProperty("class", "h3")
+        bot_lay.addWidget(syl_hdr)
 
         self.syl_table = QTableWidget(self)
         self.syl_table.setColumnCount(5)
         self.syl_table.setHorizontalHeaderLabels(["Subject", "Unit / Topic Title", "Revision Status", "Notes", "Actions"])
         self.syl_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        lay.addWidget(self.syl_table)
+        bot_lay.addWidget(self.syl_table)
+        splitter.addWidget(bot_w)
 
+        splitter.setSizes([220, 450])
+        main_lay.addWidget(splitter)
         self.views_stack.addWidget(view)
 
     def open_flashcards_modal(self):
@@ -1045,18 +1117,22 @@ class StuntMainWindow(QMainWindow):
             })
             self.refresh_all_views()
 
-    # 4. TASKS & POMODORO VIEW
+    # 4. TASKS & POMODORO VIEW (with Draggable Size Ratio Splitter)
     def init_tasks_view(self):
-        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24)
+        view = QWidget(self); main_lay = QVBoxLayout(view); main_lay.setContentsMargins(24, 24, 24, 24); main_lay.setSpacing(12)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("Task Tracker & Pomodoro Focus Timer", self))
         hdr_lay.addStretch()
         btn_new_task = QPushButton("+ Create Goal / Task", self); btn_new_task.setProperty("class", "primary"); btn_new_task.clicked.connect(lambda: self.open_task_dialog())
         hdr_lay.addWidget(btn_new_task)
-        lay.addLayout(hdr_lay)
+        main_lay.addLayout(hdr_lay)
 
-        top_split = QHBoxLayout()
+        splitter = QSplitter(Qt.Orientation.Vertical, self)
+
+        # Top Panel: Task Progress & Pomodoro Focus
+        top_w = QWidget()
+        top_split = QHBoxLayout(top_w); top_split.setContentsMargins(0, 0, 0, 0); top_split.setSpacing(16)
 
         prog_card = QFrame(self); prog_card.setProperty("class", "card"); pc_lay = QVBoxLayout(prog_card)
         self.lbl_task_summary = QLabel("Task Completion Progress: 0 of 0 Tasks Completed (0%)", self); self.lbl_task_summary.setStyleSheet("font-weight: bold; color: #ffffff;")
@@ -1075,16 +1151,25 @@ class StuntMainWindow(QMainWindow):
         btn_pomo_reset = QPushButton("Reset", self); btn_pomo_reset.clicked.connect(self.reset_pomo)
         pomo_btn_lay.addWidget(self.btn_pomo_toggle); pomo_btn_lay.addWidget(btn_pomo_reset)
         po_lay.addLayout(pomo_btn_lay)
-
         top_split.addWidget(pomo_card, stretch=1)
-        lay.addLayout(top_split)
+
+        splitter.addWidget(top_w)
+
+        # Bottom Panel: Tasks Table
+        bot_w = QWidget()
+        bot_lay = QVBoxLayout(bot_w); bot_lay.setContentsMargins(0, 0, 0, 0); bot_lay.setSpacing(6)
+        bot_lay.addWidget(QLabel("📋 TASK LIST & ACADEMIC GOALS (Drag divider above to adjust size ratio)", self))
 
         self.tasks_table = QTableWidget(self)
         self.tasks_table.setColumnCount(7)
         self.tasks_table.setHorizontalHeaderLabels(["Title", "Category", "Due Date", "Priority", "Status", "Description", "Actions"])
         self.tasks_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        lay.addWidget(self.tasks_table)
+        bot_lay.addWidget(self.tasks_table)
 
+        splitter.addWidget(bot_w)
+        splitter.setSizes([180, 520])
+
+        main_lay.addWidget(splitter)
         self.views_stack.addWidget(view)
 
     def toggle_pomo(self):
@@ -1106,9 +1191,9 @@ class StuntMainWindow(QMainWindow):
             self.reset_pomo()
             self.send_notification("Pomodoro Completed! 🍅", "Great 25-minute focus session! Take a 5-minute break.")
 
-    # 5. ATTENDANCE & BUNK SAFETY CALCULATOR VIEW
+    # 5. ATTENDANCE & BUNK SAFETY CALCULATOR VIEW (with Draggable Size Ratio Splitter)
     def init_attendance_view(self):
-        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24)
+        view = QWidget(self); main_lay = QVBoxLayout(view); main_lay.setContentsMargins(24, 24, 24, 24); main_lay.setSpacing(12)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("Attendance Tracker & Bunk Safety Calculator", self))
@@ -1121,26 +1206,42 @@ class StuntMainWindow(QMainWindow):
 
         btn_add_sub = QPushButton("+ Add Subject", self); btn_add_sub.clicked.connect(self.open_subject_dialog)
         hdr_lay.addWidget(btn_add_sub)
-        lay.addLayout(hdr_lay)
+        main_lay.addLayout(hdr_lay)
+
+        splitter = QSplitter(Qt.Orientation.Vertical, self)
+
+        # Top Panel: Subject Cards Container
+        top_w = QWidget()
+        top_lay = QVBoxLayout(top_w); top_lay.setContentsMargins(0, 0, 0, 0); top_lay.setSpacing(6)
+        top_lay.addWidget(QLabel("🏛️ SUBJECT ATTENDANCE & BUNK SAFETY CARDS (Drag bar below to adjust size ratio)", self))
 
         self.sub_cards_area = QWidget(self)
         self.sub_cards_lay = QGridLayout(self.sub_cards_area)
-        lay.addWidget(self.sub_cards_area)
+        top_lay.addWidget(self.sub_cards_area)
+        splitter.addWidget(top_w)
+
+        # Bottom Panel: Attendance History Table
+        bot_w = QWidget()
+        bot_lay = QVBoxLayout(bot_w); bot_lay.setContentsMargins(0, 0, 0, 0); bot_lay.setSpacing(6)
 
         self.att_search = QLineEdit(self); self.att_search.setPlaceholderText("Search subject or date..."); self.att_search.textChanged.connect(self.refresh_attendance_table)
-        lay.addWidget(self.att_search)
+        bot_lay.addWidget(self.att_search)
 
         self.att_table = QTableWidget(self)
         self.att_table.setColumnCount(6)
         self.att_table.setHorizontalHeaderLabels(["Date", "Semester", "Subject", "Status", "Remarks", "Actions"])
         self.att_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        lay.addWidget(self.att_table)
+        bot_lay.addWidget(self.att_table)
 
+        splitter.addWidget(bot_w)
+        splitter.setSizes([260, 440])
+
+        main_lay.addWidget(splitter)
         self.views_stack.addWidget(view)
 
-    # 6. FINANCE & TARGETED SAVINGS VIEW (with Roommate Group Expense Splitter)
+    # 6. FINANCE & TARGETED SAVINGS VIEW (with Draggable Splitter & Smooth ScrollArea)
     def init_finance_view(self):
-        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(16)
+        view = QWidget(self); main_lay = QVBoxLayout(view); main_lay.setContentsMargins(24, 24, 24, 24); main_lay.setSpacing(12)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("Finance Ledger & Targeted Savings Goals", self))
@@ -1158,7 +1259,17 @@ class StuntMainWindow(QMainWindow):
         btn_log_exp = QPushButton("+ Log Expense", self); btn_log_exp.setProperty("class", "primary"); btn_log_exp.clicked.connect(lambda: self.open_finance_dialog("Expense"))
         hdr_lay.addWidget(btn_log_exp)
 
-        lay.addLayout(hdr_lay)
+        main_lay.addLayout(hdr_lay)
+
+        splitter = QSplitter(Qt.Orientation.Vertical, self)
+
+        # Top Panel: Scrollable Container for Expense Splitter, Savings Goals, Graphs
+        top_scroll = QScrollArea(self)
+        top_scroll.setWidgetResizable(True)
+        top_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+
+        top_content = QWidget()
+        tc_lay = QVBoxLayout(top_content); tc_lay.setContentsMargins(0, 0, 0, 0); tc_lay.setSpacing(12)
 
         # Roommate Group Expense Splitter Card
         ge_card = QFrame(self); ge_card.setProperty("class", "card"); gec_lay = QVBoxLayout(ge_card)
@@ -1170,32 +1281,43 @@ class StuntMainWindow(QMainWindow):
         self.ge_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.ge_table.setFixedHeight(110)
         gec_lay.addWidget(self.ge_table)
-
-        lay.addWidget(ge_card)
+        tc_lay.addWidget(ge_card)
 
         sg_header = QLabel("🎯 TARGETED SAVINGS GOALS & WISHLIST", self); sg_header.setProperty("class", "h3")
-        lay.addWidget(sg_header)
+        tc_lay.addWidget(sg_header)
 
         self.savings_cards_area = QWidget(self)
         self.savings_cards_lay = QGridLayout(self.savings_cards_area)
-        lay.addWidget(self.savings_cards_area)
+        tc_lay.addWidget(self.savings_cards_area)
 
         graph_card = QFrame(self); graph_card.setProperty("class", "card")
         gc_lay = QVBoxLayout(graph_card); gc_lay.setContentsMargins(10, 10, 10, 10)
 
-        self.finance_canvas = FinanceChartCanvas(self, width=9, height=3.0, dpi=100)
+        self.finance_canvas = FinanceChartCanvas(self, width=9, height=2.8, dpi=100)
         gc_lay.addWidget(self.finance_canvas)
-        lay.addWidget(graph_card)
+        tc_lay.addWidget(graph_card)
+
+        top_scroll.setWidget(top_content)
+        splitter.addWidget(top_scroll)
+
+        # Bottom Panel: Transaction Ledger Table
+        bot_w = QWidget()
+        bot_lay = QVBoxLayout(bot_w); bot_lay.setContentsMargins(0, 0, 0, 0); bot_lay.setSpacing(6)
+        bot_lay.addWidget(QLabel("💰 TRANSACTION LEDGER (Drag divider above to adjust size ratio)", self))
 
         self.fin_search = QLineEdit(self); self.fin_search.setPlaceholderText("Search transaction description or category..."); self.fin_search.textChanged.connect(self.refresh_finance_table)
-        lay.addWidget(self.fin_search)
+        bot_lay.addWidget(self.fin_search)
 
         self.fin_table = QTableWidget(self)
         self.fin_table.setColumnCount(6)
         self.fin_table.setHorizontalHeaderLabels(["Date", "Type", "Category", "Description", "Amount (₹)", "Actions"])
         self.fin_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        lay.addWidget(self.fin_table)
+        bot_lay.addWidget(self.fin_table)
 
+        splitter.addWidget(bot_w)
+        splitter.setSizes([380, 420])
+
+        main_lay.addWidget(splitter)
         self.views_stack.addWidget(view)
 
     def open_group_expense_dialog(self):
