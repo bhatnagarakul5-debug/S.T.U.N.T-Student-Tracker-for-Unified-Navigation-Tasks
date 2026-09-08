@@ -58,8 +58,20 @@
 * **Targeted Wishlist & Savings Cards**: Save towards laptops, phones, trips, or certifications with progress bars and celebration popups upon reaching 100%.
 * **Roommate Group Expense Splitter**: Split shared bills, Wi-Fi costs, and meals evenly with friends.
 
-### 📅 Timetable & Smart Lecture Alarms
-* **Multi-Semester Weekly Schedule**: View and filter class schedules by semester or day.
+### 🤖 J.A.R.V.I.S. College Wingman & Academic Co-Pilot (`Ctrl+J`)
+* **Warm, Loyal "Proper Friend" AI**: Talks like your trusted college buddy — keeping you motivated, tracking lecture times, and calling out risky bunks with witty advice.
+* **Time-Aware Intelligence**: Checks the current time of day, active class, and minutes until your next lecture.
+* **Natural Language Attendance Logging**: Just type or say *"Attended Finance today"* or *"Present in Business Economics"* — JARVIS logs the record immediately into SQLite, recalculates your attendance percentage, and updates the entire dashboard in real time!
+* **Bunk Safeguard Engine**: Ask *"Can I bunk Economics?"* — JARVIS computes your exact safe bunk cushion or tells you how many consecutive lectures you need to attend to avoid debarment.
+* **Speech Synthesis**: Real-time voice reading powered by Windows SAPI with 1-click toggle (`🔊 Voice: ON` / `🔇 Mute`).
+* **Two-Way JARVIS Mark-XL Integration**: Connects directly with the central JARVIS Mark-XL system (`actions/stunt_bridge.py`) for voice/chat commands anywhere on your system.
+
+### 📅 Upgraded Timetable & Schedule Intelligence
+* **"Today's Live Schedule" Hero Card**: Dynamic card highlighting today's classes, current active lecture, or countdown to your next class.
+* **1-Click Attendance from Timetable**: Mark `✅ Present`, `❌ Absent / Bunked`, or `⚠️ Cancelled` right from the live hero card or any table row without leaving your timetable!
+* **Visual Day-by-Day Selector**: Filter lectures by day (`Monday` through `Saturday`) with real-time class counters on each tab.
+* **Automatic Collision & Overlap Detector**: Instantly scans and warns you if two classes on the same day in the same semester have overlapping times (`⚠️ Schedule Conflicts Detected`).
+* **1-Click Sample College Schedule**: Populate standard college degree schedules with a single click to get started immediately.
 * **Smart Anti-Spam Alarms**: Background system tray notifications 15 minutes before scheduled lectures, deduplicated so you only get notified once per class per day.
 * **.ics Calendar Export**: 1-click export to standard iCalendar format compatible with Google Calendar, Outlook, and Apple Calendar.
 
@@ -95,6 +107,7 @@
 | `Ctrl+9` | Academic Milestones |
 | `Ctrl+T` | Quick Create Task / Goal |
 | `Ctrl+A` | Quick Log Attendance |
+| `Ctrl+J` | Open J.A.R.V.I.S. College Wingman |
 
 ---
 

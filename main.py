@@ -43,6 +43,18 @@ def speak_text(text):
             pass
     threading.Thread(target=run_speech, daemon=True).start()
 
+def parse_time_to_minutes(time_str: str):
+    if not time_str:
+        return None
+    time_str = time_str.strip().upper()
+    for fmt in ("%I:%M %p", "%I:%M%p", "%H:%M", "%I %p"):
+        try:
+            dt = datetime.strptime(time_str, fmt)
+            return dt.hour * 60 + dt.minute
+        except ValueError:
+            pass
+    return None
+
 THEMES = {
     "Glitchcore Dark": {
         "bg": "#0a0b10", "card": "#181a27", "primary": "#6366f1", "secondary": "#0ea5e9", "accent": "#10b981", "danger": "#f43f5e"
@@ -746,6 +758,413 @@ class EditProfileDialog(QDialog):
         db.save_profile(prof)
         self.accept()
 
+# Embedded JARVIS Wingman Companion Dialog
+class JarvisWingmanDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent_window = parent
+        self.setWindowTitle("J.A.R.V.I.S. • Akul's College Wingman & Academic Co-Pilot")
+        self.resize(740, 660)
+        self.setMinimumSize(620, 540)
+        self.voice_enabled = True
+
+        main_lay = QVBoxLayout(self)
+        main_lay.setContentsMargins(18, 18, 18, 18)
+        main_lay.setSpacing(10)
+
+        # Header Frame with AI Avatar & Voice Toggle
+        hdr_frame = QFrame(self)
+        hdr_frame.setStyleSheet("background: #10121d; border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 10px; padding: 6px;")
+        hdr_lay = QHBoxLayout(hdr_frame)
+        hdr_lay.setContentsMargins(12, 6, 12, 6)
+
+        lbl_bot = QLabel("🤖", self)
+        lbl_bot.setStyleSheet("font-size: 32px;")
+        hdr_lay.addWidget(lbl_bot)
+
+        title_lay = QVBoxLayout()
+        title_lay.setSpacing(2)
+        lbl_title = QLabel("J.A.R.V.I.S. Mark XLI • College Wingman", self)
+        lbl_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #38bdf8;")
+        lbl_sub = QLabel("Connected to STUNT Database • Real-Time Schedule & Attendance Intelligence", self)
+        lbl_sub.setStyleSheet("font-size: 11px; color: #94a3b8;")
+        title_lay.addWidget(lbl_title)
+        title_lay.addWidget(lbl_sub)
+        hdr_lay.addLayout(title_lay)
+        hdr_lay.addStretch()
+
+        self.btn_voice_toggle = QPushButton("🔊 Voice: ON", self)
+        self.btn_voice_toggle.setStyleSheet("background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; font-weight: bold; padding: 6px 12px; border-radius: 6px;")
+        self.btn_voice_toggle.clicked.connect(self.toggle_voice)
+        hdr_lay.addWidget(self.btn_voice_toggle)
+
+        main_lay.addWidget(hdr_frame)
+
+        # Live Context Pill Bar
+        self.live_pill = QLabel(self)
+        self.live_pill.setStyleSheet("background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); color: #7dd3fc; border-radius: 6px; padding: 6px 12px; font-size: 12px;")
+        main_lay.addWidget(self.live_pill)
+
+        # Chat Conversation Area
+        self.chat_view = QTextEdit(self)
+        self.chat_view.setReadOnly(True)
+        self.chat_view.setStyleSheet("background: #090a10; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; color: #f8fafc; font-size: 13px;")
+        main_lay.addWidget(self.chat_view, stretch=1)
+
+        # Quick Action Chips Bar
+        chips_lay = QHBoxLayout()
+        chips_lay.setSpacing(6)
+        chips = [
+            ("📅 Schedule", "What is my timetable today?"),
+            ("⏳ Next Class", "What is my next lecture?"),
+            ("✅ Mark Present", "Mark me present in my latest lecture"),
+            ("🎯 Can I Bunk?", "Can I bunk any classes?"),
+            ("📊 Attendance %", "How is my attendance overall?"),
+            ("💡 Daily Briefing", "Give me a daily college briefing")
+        ]
+        for label, prompt in chips:
+            btn = QPushButton(label, self)
+            btn.setStyleSheet("background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4); color: #cbd5e1; border-radius: 14px; padding: 4px 10px; font-size: 11px;")
+            btn.clicked.connect(lambda checked, p=prompt: self.send_prompt(p))
+            chips_lay.addWidget(btn)
+        chips_lay.addStretch()
+        main_lay.addLayout(chips_lay)
+
+        # Input Row
+        in_lay = QHBoxLayout()
+        in_lay.setSpacing(8)
+        self.chat_input = QLineEdit(self)
+        self.chat_input.setPlaceholderText("Ask JARVIS: 'Attended Finance today', 'Can I bunk Stats?', 'What class next?'...")
+        self.chat_input.setStyleSheet("background: #141724; border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 8px; padding: 10px 14px; color: #ffffff; font-size: 13px;")
+        self.chat_input.returnPressed.connect(self.handle_send)
+        in_lay.addWidget(self.chat_input, stretch=1)
+
+        btn_send = QPushButton("Send 🚀", self)
+        btn_send.setProperty("class", "primary")
+        btn_send.setStyleSheet("background: #6366f1; color: #ffffff; font-weight: bold; border-radius: 8px; padding: 10px 18px;")
+        btn_send.clicked.connect(self.handle_send)
+        in_lay.addWidget(btn_send)
+        main_lay.addLayout(in_lay)
+
+        self.update_live_context()
+        self.initial_greeting()
+
+    def toggle_voice(self):
+        self.voice_enabled = not self.voice_enabled
+        if self.voice_enabled:
+            self.btn_voice_toggle.setText("🔊 Voice: ON")
+            self.btn_voice_toggle.setStyleSheet("background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; font-weight: bold; padding: 6px 12px; border-radius: 6px;")
+        else:
+            self.btn_voice_toggle.setText("🔇 Mute")
+            self.btn_voice_toggle.setStyleSheet("background: rgba(244, 63, 94, 0.2); border: 1px solid #f43f5e; color: #f43f5e; font-weight: bold; padding: 6px 12px; border-radius: 6px;")
+
+    def append_message(self, sender: str, text: str):
+        if sender == "You":
+            bubble = f"<div style='margin: 8px 0; text-align: right;'><span style='background: #1e2238; border: 1px solid #6366f1; color: #f8fafc; padding: 8px 14px; border-radius: 12px; display: inline-block;'><b>You:</b> {text}</span></div>"
+        else:
+            import re
+            formatted_text = text.replace('\\n', '<br>').replace('\n', '<br>')
+            formatted_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_text)
+            bubble = f"<div style='margin: 8px 0; text-align: left;'><span style='background: #111422; border: 1px solid rgba(14, 165, 233, 0.4); color: #cbd5e1; padding: 10px 14px; border-radius: 12px; display: inline-block; line-height: 1.5;'><b>🤖 JARVIS:</b><br>{formatted_text}</span></div>"
+        
+        self.chat_view.append(bubble)
+        sb = self.chat_view.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+    def update_live_context(self):
+        now_dt = datetime.now()
+        day_name = now_dt.strftime("%A")
+        date_str = now_dt.strftime("%d %b %Y")
+        time_str = now_dt.strftime("%I:%M %p")
+        profile = self.parent_window.profile if self.parent_window else db.get_profile()
+        course = profile.get('course', 'Degree')
+        self.live_pill.setText(f"🕒 <b>{time_str}</b> • {day_name}, {date_str} • <b>{course}</b> • Target Attendance: <b>{profile.get('targetAttendancePct', 85):.0f}%</b>")
+
+    def initial_greeting(self):
+        profile = self.parent_window.profile if self.parent_window else db.get_profile()
+        user_name = profile.get('name', 'Akul').split()[0]
+        hour = datetime.now().hour
+        day_name = datetime.now().strftime("%A")
+
+        if 5 <= hour < 12:
+            greet = f"Morning bro {user_name}! ☀️ Ready to tackle {day_name}?"
+        elif 12 <= hour < 17:
+            greet = f"Hey {user_name}! ⚡ Midday hustle time. Hope college isn't grinding you down!"
+        elif 17 <= hour < 22:
+            greet = f"Evening bro {user_name}! 🌆 Lectures wrapped up for today. Time to decompress or plan your moves."
+        else:
+            greet = f"Late night grind, {user_name}! 🌙 Don't burn through the midnight oil too hard, tomorrow's lectures await!"
+
+        tt = self.parent_window.data.get('timetable', []) if self.parent_window else []
+        today_slots = [s for s in tt if s.get('day', '').lower() == day_name.lower()]
+        
+        schedule_msg = ""
+        if today_slots:
+            schedule_msg = f"You've got <b>{len(today_slots)} lecture{'s' if len(today_slots) > 1 else ''}</b> today. First up: <b>{today_slots[0]['subject']}</b> at {today_slots[0]['start']}."
+        else:
+            schedule_msg = f"Zero lectures on your timetable for {day_name}. It's a free runway, bro!"
+
+        subs = self.parent_window.data.get('subjects', []) if self.parent_window else []
+        att_logs = self.parent_window.data.get('attendanceLogs', []) if self.parent_window else []
+        danger_subs = []
+        target = profile.get('targetAttendancePct', 85.0)
+        for s in subs:
+            s_logs = [l for l in att_logs if l.get('subjectId') == s.get('id')]
+            if s_logs:
+                presents = sum(1 for l in s_logs if l.get('status') == 'Present')
+                pct = (presents / len(s_logs)) * 100.0
+                if pct < target:
+                    danger_subs.append((s.get('name'), pct))
+
+        danger_msg = ""
+        if danger_subs:
+            sub_names = ", ".join([f"<b>{name}</b> ({p:.1f}%)" for name, p in danger_subs[:2]])
+            danger_msg = f"<br>⚠️ <b>Heads up bro:</b> Attendance in {sub_names} is below your {target:.0f}% target. No more bunks there!"
+
+        welcome_text = f"{greet}<br><br>{schedule_msg}{danger_msg}<br><br>I'm connected directly to your STUNT database. Tell me what you need — ask for your schedule, check safe bunks, or say <i>'attended Finance today'</i> to log attendance!"
+        self.append_message("JARVIS", welcome_text)
+
+        if self.voice_enabled:
+            plain = f"{greet} {schedule_msg}".replace('<b>', '').replace('</b>', '')
+            speak_text(plain)
+
+    def send_prompt(self, text: str):
+        self.chat_input.setText(text)
+        self.handle_send()
+
+    def handle_send(self):
+        text = self.chat_input.text().strip()
+        if not text:
+            return
+        self.chat_input.clear()
+        self.append_message("You", text)
+        self.update_live_context()
+
+        reply = self.resolve_query(text)
+        self.append_message("JARVIS", reply)
+
+        if self.voice_enabled:
+            import re
+            plain = re.sub(r'<.*?>', '', reply).replace('*', '')
+            speak_text(plain)
+
+    def resolve_query(self, query: str) -> str:
+        q = query.lower()
+        now_dt = datetime.now()
+        day_name = now_dt.strftime("%A")
+        today_str = date.today().isoformat()
+        profile = self.parent_window.profile if self.parent_window else db.get_profile()
+        target_pct = profile.get('targetAttendancePct', 85.0)
+        target_dec = target_pct / 100.0
+
+        if self.parent_window:
+            self.parent_window.data = db.get_all_data()
+            data = self.parent_window.data
+        else:
+            data = db.get_all_data()
+
+        subjects = data.get('subjects', [])
+        timetable = data.get('timetable', [])
+        att_logs = data.get('attendanceLogs', [])
+
+        # 1. ATTENDANCE LOGGING
+        is_att_log = any(w in q for w in ["attended", "present in", "mark present", "bunked", "absent in", "missed", "cancelled class", "class cancelled", "log attendance"])
+        if is_att_log:
+            status = "Present"
+            if any(w in q for w in ["bunked", "absent", "missed", "skipped"]):
+                status = "Absent"
+            elif any(w in q for w in ["cancelled", "canceled"]):
+                status = "Cancelled"
+
+            matched_sub = None
+            for s in subjects:
+                if s['name'].lower() in q:
+                    matched_sub = s
+                    break
+            
+            if not matched_sub:
+                for t in timetable:
+                    if t['subject'].lower() in q:
+                        matched_sub = {'name': t['subject'], 'id': None, 'sem': t.get('sem', 1)}
+                        break
+
+            sub_name = ""
+            if matched_sub:
+                sub_name = matched_sub['name']
+            else:
+                for kw in ["attended", "present in", "mark present in", "mark present", "bunked", "absent in", "missed", "cancelled"]:
+                    if kw in q:
+                        sub_name = q.split(kw)[-1].replace("today", "").replace("class", "").replace("lecture", "").strip().title()
+                        break
+
+            if not sub_name:
+                today_slots = [s for s in timetable if s.get('day', '').lower() == day_name.lower()]
+                if today_slots:
+                    sub_name = today_slots[0]['subject']
+                else:
+                    return "Which subject did you attend or bunk, bro? Tell me like: <i>'Attended International Finance today'</i>."
+
+            sub_obj = next((s for s in subjects if s['name'].lower() == sub_name.lower()), None)
+            if not sub_obj:
+                sub_id = f"sub-{int(now_dt.timestamp())}"
+                sub_obj = {
+                    'id': sub_id,
+                    'sem': 1,
+                    'name': sub_name,
+                    'code': sub_name[:6].upper(),
+                    'faculty': 'Faculty',
+                    'targetPct': target_pct,
+                    'color': '#6366f1'
+                }
+                db.save_subject(sub_obj)
+            else:
+                sub_id = sub_obj['id']
+
+            att_id = f"att-{int(now_dt.timestamp())}"
+            db.save_attendance({
+                'id': att_id,
+                'sem': sub_obj.get('sem', 1),
+                'subjectId': sub_id,
+                'subjectName': sub_obj['name'],
+                'date': today_str,
+                'status': status,
+                'remarks': "Logged via JARVIS Wingman"
+            })
+
+            if self.parent_window:
+                self.parent_window.refresh_all_views()
+                self.parent_window.send_notification("Attendance Logged 📋", f"JARVIS recorded {status} for {sub_obj['name']}")
+
+            all_logs = [l for l in db.get_attendance_logs() if l['subjectId'] == sub_id]
+            tot = len(all_logs)
+            prs = sum(1 for l in all_logs if l['status'] == 'Present')
+            pct = (prs / tot * 100.0) if tot > 0 else 100.0
+            safe = math.floor((prs - target_dec * tot) / target_dec) if target_dec > 0 else 0
+            needed = math.ceil((target_dec * tot - prs) / (1.0 - target_dec)) if target_dec < 1.0 else 0
+
+            if status == "Present":
+                bunk_msg = f"You have <b>{safe} safe bunk(s)</b> in reserve." if safe > 0 else f"⚠️ Careful bro, zero safe bunks left! Keep attending."
+                return f"Done bro! ✅ Marked you <b>Present</b> in <b>{sub_obj['name']}</b> for today ({today_str}).<br>Your attendance is now <b>{pct:.1f}%</b> ({prs}/{tot} lectures). {bunk_msg}"
+            elif status == "Absent":
+                advice = f"You still have <b>{safe} safe bunk(s)</b> remaining." if safe >= 0 else f"🚨 You dipped below your {target_pct:.0f}% target! You need to attend the next <b>{needed} classes straight</b> to recover!"
+                return f"Got it, marked you <b>Absent / Bunked</b> ❌ in <b>{sub_obj['name']}</b> for today.<br>Attendance dropped to <b>{pct:.1f}%</b> ({prs}/{tot}). {advice}"
+            else:
+                return f"Logged <b>{sub_obj['name']}</b> as <b>Cancelled</b> ⚠️ for today. No penalty to your attendance!"
+
+        # 2. BUNK CHECK
+        if any(w in q for w in ["bunk", "safe bunk", "can i skip", "skip class", "should i go"]):
+            if not subjects:
+                return "You don't have any subjects logged in STUNT yet, bro! Add your timetable or subjects first and I'll calculate your exact safe bunks."
+
+            matched_sub = next((s for s in subjects if s['name'].lower() in q), None)
+            if matched_sub:
+                s_logs = [l for l in att_logs if l.get('subjectId') == matched_sub['id']]
+                tot = len(s_logs)
+                prs = sum(1 for l in s_logs if l.get('status') == 'Present')
+                pct = (prs / tot * 100.0) if tot > 0 else 100.0
+                safe = math.floor((prs - target_dec * tot) / target_dec) if target_dec > 0 else 0
+                needed = math.ceil((target_dec * tot - prs) / (1.0 - target_dec)) if target_dec < 1.0 else 0
+
+                if safe > 0:
+                    return f"Verdict on <b>{matched_sub['name']}</b>: You are at <b>{pct:.1f}%</b> ({prs}/{tot} attended).<br>✅ You have <b>{safe} safe bunk(s)</b> available! You can take a break if you really need to, but don't blow it all at once."
+                elif safe == 0 and pct >= target_pct:
+                    return f"Careful bro! In <b>{matched_sub['name']}</b> you're at <b>{pct:.1f}%</b> ({prs}/{tot}). You have <b>0 safe bunks</b>! If you miss today, you drop below {target_pct:.0f}%. Sit in class!"
+                else:
+                    return f"🚨 <b>DO NOT BUNK {matched_sub['name']}!</b><br>You're at <b>{pct:.1f}%</b> ({prs}/{tot}). You must attend the next <b>{needed} classes consecutively</b> to reach {target_pct:.0f}%! Grab your bag and go!"
+            else:
+                lines = ["<b>Here's your safe bunk breakdown across subjects:</b>"]
+                for s in subjects:
+                    s_logs = [l for l in att_logs if l.get('subjectId') == s.get('id')]
+                    tot = len(s_logs)
+                    prs = sum(1 for l in s_logs if l.get('status') == 'Present')
+                    pct = (prs / tot * 100.0) if tot > 0 else 100.0
+                    safe = math.floor((prs - target_dec * tot) / target_dec) if target_dec > 0 else 0
+                    if safe > 0:
+                        lines.append(f"• <b>{s['name']}</b>: {pct:.1f}% 🟢 (<b>{safe}</b> safe bunks)")
+                    elif pct >= target_pct:
+                        lines.append(f"• <b>{s['name']}</b>: {pct:.1f}% 🟡 (<b>0</b> safe bunks — on the edge)")
+                    else:
+                        needed = math.ceil((target_dec * tot - prs) / (1.0 - target_dec)) if target_dec < 1.0 else 0
+                        lines.append(f"• <b>{s['name']}</b>: {pct:.1f}% 🔴 (Need <b>+{needed}</b> classes)")
+                return "<br>".join(lines)
+
+        # 3. SCHEDULE / TIMETABLE
+        if any(w in q for w in ["schedule", "timetable", "class", "lecture", "today's"]):
+            today_slots = [s for s in timetable if s.get('day', '').lower() == day_name.lower()]
+            if not today_slots:
+                return f"No lectures scheduled on your timetable for <b>{day_name}</b>, bro! If you have classes today, add them in the Timetable tab or click 'Load Sample Schedule'!"
+
+            now_mins = now_dt.hour * 60 + now_dt.minute
+            active_slot = None
+            next_slot = None
+            min_diff = 999999
+
+            for s in today_slots:
+                sm = parse_time_to_minutes(s.get('start', ''))
+                em = parse_time_to_minutes(s.get('end', ''))
+                if sm is None or em is None: continue
+                if sm <= now_mins <= em:
+                    active_slot = s
+                    break
+                diff = sm - now_mins
+                if 0 < diff < min_diff:
+                    min_diff = diff
+                    next_slot = s
+
+            schedule_list = []
+            for s in today_slots:
+                loc = f" (Room {s['location']})" if s.get('location') else ""
+                inst = f" - {s['instructor']}" if s.get('instructor') else ""
+                schedule_list.append(f"• <b>{s['subject']}</b>: {s['start']} to {s['end']}{loc}{inst}")
+
+            header = f"<b>Today's Schedule ({day_name}, {len(today_slots)} lectures):</b><br>" + "<br>".join(schedule_list)
+            if active_slot:
+                header += f"<br><br>🔴 <b>You're currently in:</b> {active_slot['subject']} ({active_slot['start']} - {active_slot['end']})!"
+            elif next_slot:
+                header += f"<br><br>⏳ <b>Next up:</b> {next_slot['subject']} at {next_slot['start']} (in {min_diff} mins)!"
+            else:
+                header += "<br><br>✅ All lectures for today are finished!"
+            return header
+
+        # 4. DAILY BRIEFING
+        if any(w in q for w in ["briefing", "summary", "how am i doing", "status", "overview"]):
+            today_slots = [s for s in timetable if s.get('day', '').lower() == day_name.lower()]
+            tasks = data.get('tasks', [])
+            pending_tasks = [t for t in tasks if t.get('status') != 'Completed']
+            tot_att = len(att_logs)
+            prs_att = sum(1 for l in att_logs if l.get('status') == 'Present')
+            overall_pct = (prs_att / tot_att * 100.0) if tot_att > 0 else 100.0
+
+            brief = [
+                f"<b>College 360° Briefing for {profile.get('name', 'Akul')}:</b>",
+                f"🏫 <b>Campus</b>: {profile.get('college', 'NMIMS')} • {profile.get('course', 'BBA IB')}",
+                f"📅 <b>Today ({day_name})</b>: {len(today_slots)} lectures scheduled.",
+                f"📊 <b>Overall Attendance</b>: <b>{overall_pct:.1f}%</b> (Target: {target_pct:.0f}%)",
+                f"🎯 <b>Tasks & Deadlines</b>: {len(pending_tasks)} pending assignments."
+            ]
+            if pending_tasks:
+                brief.append(f"Urgent: <i>{pending_tasks[0]['title']}</i> (due {pending_tasks[0].get('dueDate', 'soon')})")
+            brief.append("Keep the momentum going, bro! What would you like to tackle next?")
+            return "<br>".join(brief)
+
+        # 5. TASKS / ASSIGNMENTS
+        if any(w in q for w in ["task", "todo", "assignment", "homework"]):
+            tasks = data.get('tasks', [])
+            pending_tasks = [t for t in tasks if t.get('status') != 'Completed']
+            if not pending_tasks:
+                return "Zero pending tasks on your board! You're completely caught up, bro. Take a well-deserved break or review your flashcards!"
+            t_lines = ["<b>Your Pending Tasks & Deadlines:</b>"]
+            for t in pending_tasks[:5]:
+                t_lines.append(f"• <b>{t['title']}</b> [{t.get('priority', 'Normal')}] - Due {t.get('dueDate', 'No date')}")
+            return "<br>".join(t_lines)
+
+        # 6. FRIEND BANTER / DEFAULT
+        greetings = ["hey", "hello", "hi", "sup", "what's up", "bro", "jarvis"]
+        if any(q.startswith(g) for g in greetings) or len(q) < 10:
+            return f"What's good, bro! I'm on duty. Ask me about your timetable, check if you can bunk a class, or tell me <i>'Attended [Subject] today'</i> to log your attendance!"
+        
+        return f"Got it bro! I'm tracking everything in STUNT. You can tell me to log attendance (e.g. <i>'Attended Finance today'</i>), check your schedule (<i>'What's my next lecture?'</i>), or calculate safe bunks (<i>'Can I bunk Economics?'</i>)."
+
 # Native Main Window
 class StuntMainWindow(QMainWindow):
     def __init__(self):
@@ -914,6 +1333,11 @@ class StuntMainWindow(QMainWindow):
         btn_log_att = QPushButton("+ Log Attendance", self); btn_log_att.clicked.connect(lambda: self.open_attendance_dialog())
         topbar_layout.addWidget(btn_log_att)
 
+        btn_jarvis = QPushButton("🤖 JARVIS Wingman", self)
+        btn_jarvis.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366f1, stop:1 #0ea5e9); color: #ffffff; font-weight: bold; border-radius: 6px; padding: 6px 12px;")
+        btn_jarvis.clicked.connect(self.open_jarvis_wingman)
+        topbar_layout.addWidget(btn_jarvis)
+
         self.btn_toggle_drawer = QPushButton("📊", self); self.btn_toggle_drawer.setProperty("class", "icon-btn"); self.btn_toggle_drawer.clicked.connect(self.toggle_drawer)
         topbar_layout.addWidget(self.btn_toggle_drawer)
 
@@ -998,8 +1422,19 @@ class StuntMainWindow(QMainWindow):
         sc_att = QShortcut(QKeySequence("Ctrl+A"), self)
         sc_att.activated.connect(lambda: self.open_attendance_dialog())
 
+        sc_jarvis = QShortcut(QKeySequence("Ctrl+J"), self)
+        sc_jarvis.activated.connect(self.open_jarvis_wingman)
+
         self.switch_view(0)
         self.refresh_all_views()
+
+    def open_jarvis_wingman(self):
+        if not hasattr(self, 'jarvis_dlg') or self.jarvis_dlg is None or not self.jarvis_dlg.isVisible():
+            self.jarvis_dlg = JarvisWingmanDialog(self)
+            self.jarvis_dlg.show()
+        else:
+            self.jarvis_dlg.activateWindow()
+            self.jarvis_dlg.raise_()
 
     def open_copyright_dialog(self):
         dlg = CopyrightDialog(self)
@@ -1602,12 +2037,15 @@ class StuntMainWindow(QMainWindow):
         btn_save.clicked.connect(save)
         dlg.exec()
 
-    # 7. TIMETABLE VIEW (with .ics Export & Semester Filter)
+    # 7. TIMETABLE VIEW (Upgraded with Live Today Hero Card, Day Filters, Conflict Detection, 1-Click Attendance)
     def init_timetable_view(self):
-        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24)
+        view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(14)
 
+        # 1. Top Controls Bar
         hdr_lay = QHBoxLayout()
-        hdr_lay.addWidget(QLabel("Weekly Lecture Timetable", self))
+        lbl_tt = QLabel("Weekly Lecture Timetable & Schedule Intelligence", self)
+        lbl_tt.setProperty("class", "h2")
+        hdr_lay.addWidget(lbl_tt)
         hdr_lay.addStretch()
 
         self.tt_sem_filter = QComboBox(self)
@@ -1617,18 +2055,114 @@ class StuntMainWindow(QMainWindow):
         self.tt_sem_filter.currentIndexChanged.connect(self.refresh_timetable_table)
         hdr_lay.addWidget(self.tt_sem_filter)
 
-        btn_ics = QPushButton("📅 Export .ics Calendar File", self); btn_ics.setProperty("class", "success"); btn_ics.clicked.connect(self.export_ics_calendar)
+        btn_sample = QPushButton("⚡ Load Sample Schedule", self)
+        btn_sample.setStyleSheet("background: rgba(99, 102, 241, 0.2); border: 1px solid #6366f1; color: #818cf8; font-weight: bold; border-radius: 6px; padding: 6px 12px;")
+        btn_sample.clicked.connect(self.load_sample_schedule)
+        hdr_lay.addWidget(btn_sample)
+
+        btn_ics = QPushButton("📅 Export .ics Calendar", self)
+        btn_ics.setProperty("class", "success")
+        btn_ics.clicked.connect(self.export_ics_calendar)
         hdr_lay.addWidget(btn_ics)
 
-        btn_add_slot = QPushButton("+ Add Class Slot", self); btn_add_slot.clicked.connect(self.open_timetable_dialog)
+        btn_add_slot = QPushButton("+ Add Class Slot", self)
+        btn_add_slot.clicked.connect(self.open_timetable_dialog)
         hdr_lay.addWidget(btn_add_slot)
         lay.addLayout(hdr_lay)
 
+        # 2. Today's Live Lecture Schedule Hero Card
+        self.tt_live_card = QFrame(self)
+        self.tt_live_card.setProperty("class", "hero-card")
+        self.tt_live_card.setStyleSheet("background: #111422; border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 12px; padding: 14px;")
+        live_lay = QVBoxLayout(self.tt_live_card)
+        live_lay.setContentsMargins(14, 12, 14, 12)
+        live_lay.setSpacing(8)
+
+        live_top = QHBoxLayout()
+        self.tt_live_title = QLabel("📅 Today's Live Lecture Schedule", self)
+        self.tt_live_title.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
+        live_top.addWidget(self.tt_live_title)
+        live_top.addStretch()
+
+        self.tt_live_badge = QLabel("🟢 Live Schedule", self)
+        self.tt_live_badge.setStyleSheet("background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 12px;")
+        live_top.addWidget(self.tt_live_badge)
+        live_lay.addLayout(live_top)
+
+        self.tt_live_active_info = QLabel("Loading schedule...", self)
+        self.tt_live_active_info.setStyleSheet("font-size: 13px; color: #cbd5e1; line-height: 1.4;")
+        live_lay.addWidget(self.tt_live_active_info)
+
+        # 1-Click Attendance Buttons row
+        self.tt_live_actions_widget = QWidget(self)
+        btn_row = QHBoxLayout(self.tt_live_actions_widget)
+        btn_row.setContentsMargins(0, 4, 0, 0)
+        btn_row.setSpacing(8)
+
+        lbl_quick = QLabel("Quick Attendance for Active Class:", self)
+        lbl_quick.setStyleSheet("font-size: 12px; color: #94a3b8; font-weight: bold;")
+        btn_row.addWidget(lbl_quick)
+
+        self.btn_live_present = QPushButton("✅ Mark Present Today", self)
+        self.btn_live_present.setStyleSheet("background: rgba(16, 185, 129, 0.25); border: 1px solid #10b981; color: #34d399; font-weight: bold; padding: 6px 14px; border-radius: 6px;")
+        self.btn_live_present.clicked.connect(lambda: self.quick_log_active_lecture("Present"))
+        btn_row.addWidget(self.btn_live_present)
+
+        self.btn_live_absent = QPushButton("❌ Mark Absent / Bunked", self)
+        self.btn_live_absent.setStyleSheet("background: rgba(244, 63, 94, 0.25); border: 1px solid #f43f5e; color: #fb7185; font-weight: bold; padding: 6px 14px; border-radius: 6px;")
+        self.btn_live_absent.clicked.connect(lambda: self.quick_log_active_lecture("Absent"))
+        btn_row.addWidget(self.btn_live_absent)
+
+        self.btn_live_cancelled = QPushButton("⚠️ Class Cancelled", self)
+        self.btn_live_cancelled.setStyleSheet("background: rgba(245, 158, 11, 0.25); border: 1px solid #f59e0b; color: #fcd34d; font-weight: bold; padding: 6px 14px; border-radius: 6px;")
+        self.btn_live_cancelled.clicked.connect(lambda: self.quick_log_active_lecture("Cancelled"))
+        btn_row.addWidget(self.btn_live_cancelled)
+
+        btn_row.addStretch()
+        live_lay.addWidget(self.tt_live_actions_widget)
+
+        # Container for today's multiple classes mini cards
+        self.tt_today_classes_container = QWidget(self)
+        self.tt_today_classes_lay = QHBoxLayout(self.tt_today_classes_container)
+        self.tt_today_classes_lay.setContentsMargins(0, 4, 0, 0)
+        self.tt_today_classes_lay.setSpacing(8)
+        live_lay.addWidget(self.tt_today_classes_container)
+
+        lay.addWidget(self.tt_live_card)
+
+        # 3. Conflict / Overlap Alert Banner
+        self.tt_conflict_banner = QFrame(self)
+        self.tt_conflict_banner.setStyleSheet("background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; border-radius: 8px; padding: 8px 14px;")
+        conf_lay = QHBoxLayout(self.tt_conflict_banner)
+        conf_lay.setContentsMargins(8, 4, 8, 4)
+        self.tt_conflict_label = QLabel(self)
+        self.tt_conflict_label.setStyleSheet("color: #fbbf24; font-weight: bold; font-size: 12px;")
+        conf_lay.addWidget(self.tt_conflict_label)
+        conf_lay.addStretch()
+        self.tt_conflict_banner.setVisible(False)
+        lay.addWidget(self.tt_conflict_banner)
+
+        # 4. Day Selector Filter Tabs
+        day_bar = QHBoxLayout()
+        day_bar.setSpacing(6)
+        self.tt_selected_day = "All"
+        self.tt_day_btns = {}
+        day_list = ["All Days", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        for d in day_list:
+            btn = QPushButton(d, self)
+            btn.setStyleSheet("background: #141724; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 6px 14px; color: #cbd5e1; font-weight: bold;")
+            btn.clicked.connect(lambda checked, day=d: self.filter_timetable_by_day(day))
+            self.tt_day_btns[d] = btn
+            day_bar.addWidget(btn)
+        day_bar.addStretch()
+        lay.addLayout(day_bar)
+
+        # 5. Timetable Ledger Table
         self.tt_table = QTableWidget(self)
-        self.tt_table.setColumnCount(6)
-        self.tt_table.setHorizontalHeaderLabels(["Day / Sem", "Time", "Subject", "Location", "Instructor", "Actions"])
+        self.tt_table.setColumnCount(7)
+        self.tt_table.setHorizontalHeaderLabels(["Day / Sem", "Time Slot", "Subject", "Location / Room", "Instructor", "Conflict Status", "Actions"])
         self.tt_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        lay.addWidget(self.tt_table)
+        lay.addWidget(self.tt_table, stretch=1)
 
         self.views_stack.addWidget(view)
 
@@ -2565,12 +3099,184 @@ class StuntMainWindow(QMainWindow):
             db.delete_finance(fid)
             self.refresh_all_views()
 
-    # TIMETABLE TABLE (with Multi-Semester Filter)
+    def filter_timetable_by_day(self, day_name):
+        self.tt_selected_day = day_name.split()[0] if day_name != "All Days" else "All"
+        self.refresh_timetable_table()
+
+    def check_timetable_conflicts(self, slots):
+        conflicts = []
+        from collections import defaultdict
+        groups = defaultdict(list)
+        for s in slots:
+            groups[(s.get('sem', 1), s.get('day', '').strip().lower())].append(s)
+        
+        for (sem, day), group in groups.items():
+            n = len(group)
+            for i in range(n):
+                for j in range(i + 1, n):
+                    s1, s2 = group[i], group[j]
+                    m1_start = parse_time_to_minutes(s1.get('start', ''))
+                    m1_end = parse_time_to_minutes(s1.get('end', ''))
+                    m2_start = parse_time_to_minutes(s2.get('start', ''))
+                    m2_end = parse_time_to_minutes(s2.get('end', ''))
+                    if m1_start is not None and m1_end is not None and m2_start is not None and m2_end is not None:
+                        if m1_start < m2_end and m2_start < m1_end:
+                            conflicts.append((s1['id'], s2['id'], s1['subject'], s2['subject'], day.title(), sem))
+        return conflicts
+
+    # TIMETABLE TABLE (Upgraded with Live Today Hero Card, Day Filters, Conflict Detection, 1-Click Attendance)
     def refresh_timetable_table(self):
-        tt = self.data['timetable']
+        all_tt = self.data.get('timetable', [])
+        now_dt = datetime.now()
+        day_name = now_dt.strftime("%A")
+        date_str = now_dt.strftime("%d %B %Y")
+        now_mins = now_dt.hour * 60 + now_dt.minute
+
+        # 1. Evaluate Conflicts across all slots
+        conflicts = self.check_timetable_conflicts(all_tt)
+        conflict_ids = set()
+        conflict_msgs = []
+        for c in conflicts:
+            conflict_ids.add(c[0])
+            conflict_ids.add(c[1])
+            conflict_msgs.append(f"{c[4]} Sem {c[5]}: '{c[2]}' overlaps with '{c[3]}'")
+
+        if conflict_msgs and hasattr(self, 'tt_conflict_banner'):
+            self.tt_conflict_label.setText(f"⚠️ Schedule Conflicts ({len(conflicts)} detected): " + " • ".join(conflict_msgs[:3]))
+            self.tt_conflict_banner.setVisible(True)
+        elif hasattr(self, 'tt_conflict_banner'):
+            self.tt_conflict_banner.setVisible(False)
+
+        # 2. Update Day Selector Tab Labels with Class Counts
+        if hasattr(self, 'tt_day_btns'):
+            for d, btn in self.tt_day_btns.items():
+                if d == "All Days":
+                    cnt = len(all_tt)
+                    label = f"All Days ({cnt})"
+                    active = (getattr(self, 'tt_selected_day', 'All') == "All")
+                else:
+                    cnt = sum(1 for s in all_tt if s.get('day', '').lower() == d.lower())
+                    is_today = (d.lower() == day_name.lower())
+                    star = " ⭐" if is_today else ""
+                    label = f"{d} ({cnt}){star}"
+                    active = (getattr(self, 'tt_selected_day', 'All').lower() == d.lower())
+                
+                btn.setText(label)
+                if active:
+                    btn.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366f1, stop:1 #0ea5e9); border: 1px solid #6366f1; color: #ffffff; font-weight: bold; border-radius: 8px; padding: 6px 14px;")
+                else:
+                    btn.setStyleSheet("background: #141724; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 6px 14px; color: #cbd5e1; font-weight: normal;")
+
+        # 3. Update Today's Live Lecture Hero Card
+        today_slots = [s for s in all_tt if s.get('day', '').lower() == day_name.lower()]
+        if hasattr(self, 'tt_live_title'):
+            self.tt_live_title.setText(f"📅 Today is {day_name}, {date_str} • Schedule Live Telemetry")
+
+        active_slot = None
+        next_slot = None
+        min_diff = 999999
+
+        for s in today_slots:
+            sm = parse_time_to_minutes(s.get('start', ''))
+            em = parse_time_to_minutes(s.get('end', ''))
+            if sm is None or em is None: continue
+            if sm <= now_mins <= em:
+                active_slot = s
+                break
+            diff = sm - now_mins
+            if 0 < diff < min_diff:
+                min_diff = diff
+                next_slot = s
+
+        self.current_active_or_next_slot = active_slot or next_slot or (today_slots[0] if today_slots else None)
+
+        if hasattr(self, 'tt_live_badge') and hasattr(self, 'tt_live_active_info'):
+            if active_slot:
+                em = parse_time_to_minutes(active_slot.get('end', ''))
+                rem = (em - now_mins) if em else 0
+                self.tt_live_badge.setText("🔴 CURRENTLY IN CLASS")
+                self.tt_live_badge.setStyleSheet("background: rgba(239, 68, 68, 0.25); border: 1px solid #ef4444; color: #f87171; font-weight: bold; padding: 4px 12px; border-radius: 12px;")
+                self.tt_live_active_info.setText(
+                    f"<b style='font-size: 15px; color: #f8fafc;'>{active_slot['subject']}</b> "
+                    f"<span style='color: #38bdf8;'>({active_slot['start']} - {active_slot['end']})</span> • "
+                    f"Room: <b>{active_slot.get('location', 'N/A')}</b> • Faculty: <b>{active_slot.get('instructor', 'N/A')}</b><br>"
+                    f"<span style='color: #10b981;'>⏳ Remaining time in class: approx {rem} minutes.</span>"
+                )
+                self.tt_live_actions_widget.setVisible(True)
+            elif next_slot:
+                hours = min_diff // 60
+                mins = min_diff % 60
+                countdown_str = f"{hours}h {mins}m" if hours > 0 else f"{mins} mins"
+                self.tt_live_badge.setText(f"⏳ UPCOMING IN {countdown_str.upper()}")
+                self.tt_live_badge.setStyleSheet("background: rgba(245, 158, 11, 0.25); border: 1px solid #f59e0b; color: #fbbf24; font-weight: bold; padding: 4px 12px; border-radius: 12px;")
+                self.tt_live_active_info.setText(
+                    f"<b style='font-size: 15px; color: #f8fafc;'>Next: {next_slot['subject']}</b> "
+                    f"<span style='color: #38bdf8;'>at {next_slot['start']}</span> • "
+                    f"Room: <b>{next_slot.get('location', 'N/A')}</b> • Faculty: <b>{next_slot.get('instructor', 'N/A')}</b><br>"
+                    f"<span style='color: #94a3b8;'>Starts in {countdown_str}. Pack your bag or head to the room!</span>"
+                )
+                self.tt_live_actions_widget.setVisible(True)
+            elif today_slots:
+                self.tt_live_badge.setText("✅ LECTURES WRAPPED UP")
+                self.tt_live_badge.setStyleSheet("background: rgba(16, 185, 129, 0.25); border: 1px solid #10b981; color: #34d399; font-weight: bold; padding: 4px 12px; border-radius: 12px;")
+                self.tt_live_active_info.setText(
+                    f"All {len(today_slots)} lectures for {day_name} have completed! Great hustle today, Akul.<br>"
+                    f"Review today's notes or log attendance if you haven't yet."
+                )
+                self.tt_live_actions_widget.setVisible(True)
+            else:
+                self.tt_live_badge.setText("🏖️ NO CLASSES SCHEDULED")
+                self.tt_live_badge.setStyleSheet("background: rgba(148, 163, 184, 0.2); border: 1px solid #64748b; color: #94a3b8; font-weight: bold; padding: 4px 12px; border-radius: 12px;")
+                self.tt_live_active_info.setText(
+                    f"Zero lectures on your timetable for {day_name}. It's a free runway, bro! Catch up on syllabus or relax.<br>"
+                    f"If you have classes, click <i>'+ Add Class Slot'</i> or <i>'⚡ Load Sample Schedule'</i> above."
+                )
+                self.tt_live_actions_widget.setVisible(False)
+
+        # Mini chips for all today's classes
+        if hasattr(self, 'tt_today_classes_lay'):
+            while self.tt_today_classes_lay.count():
+                child = self.tt_today_classes_lay.takeAt(0)
+                if child.widget(): child.widget().deleteLater()
+
+            if today_slots:
+                lbl_all_today = QLabel(f"Today's Classes ({len(today_slots)}):", self)
+                lbl_all_today.setStyleSheet("font-size: 11px; color: #94a3b8; font-weight: bold;")
+                self.tt_today_classes_lay.addWidget(lbl_all_today)
+
+                for slot in today_slots:
+                    chip = QFrame(self)
+                    chip.setStyleSheet("background: #171a2b; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 8px;")
+                    c_lay = QHBoxLayout(chip)
+                    c_lay.setContentsMargins(6, 2, 6, 2)
+                    c_lay.setSpacing(6)
+                    c_lbl = QLabel(f"<b>{slot['subject']}</b> ({slot['start']})", chip)
+                    c_lbl.setStyleSheet("font-size: 11px; color: #e2e8f0;")
+                    c_lay.addWidget(c_lbl)
+
+                    btn_p = QPushButton("✔", chip)
+                    btn_p.setToolTip(f"Mark Present in {slot['subject']}")
+                    btn_p.setStyleSheet("background: #10b981; color: #ffffff; border-radius: 4px; font-weight: bold; padding: 2px 6px;")
+                    btn_p.clicked.connect(lambda checked, s=slot: self.quick_log_slot_attendance(s, "Present"))
+                    c_lay.addWidget(btn_p)
+
+                    btn_a = QPushButton("✖", chip)
+                    btn_a.setToolTip(f"Mark Absent in {slot['subject']}")
+                    btn_a.setStyleSheet("background: #f43f5e; color: #ffffff; border-radius: 4px; font-weight: bold; padding: 2px 6px;")
+                    btn_a.clicked.connect(lambda checked, s=slot: self.quick_log_slot_attendance(s, "Absent"))
+                    c_lay.addWidget(btn_a)
+
+                    self.tt_today_classes_lay.addWidget(chip)
+                self.tt_today_classes_lay.addStretch()
+
+        # 4. Filter and Render Table
+        tt = all_tt
         filter_sem = self.tt_sem_filter.currentData() if hasattr(self, 'tt_sem_filter') else 0
         if filter_sem > 0:
             tt = [t for t in tt if t.get('sem', 1) == filter_sem]
+
+        if hasattr(self, 'tt_selected_day') and self.tt_selected_day != "All":
+            tt = [t for t in tt if t.get('day', '').lower() == self.tt_selected_day.lower()]
 
         self.tt_table.setRowCount(len(tt))
         for row, t in enumerate(tt):
@@ -2580,18 +3286,106 @@ class StuntMainWindow(QMainWindow):
             self.tt_table.setItem(row, 3, QTableWidgetItem(t['location']))
             self.tt_table.setItem(row, 4, QTableWidgetItem(t['instructor']))
 
+            # Conflict indicator
+            is_conflict = t['id'] in conflict_ids
+            status_item = QTableWidgetItem("⚠️ Overlap" if is_conflict else "🟢 Clear")
+            if is_conflict:
+                status_item.setForeground(QColor("#f59e0b"))
+            else:
+                status_item.setForeground(QColor("#10b981"))
+            self.tt_table.setItem(row, 5, status_item)
+
+            # Actions: [📋 Mark Att] [Edit] [Delete]
             act_widget = QWidget(self)
-            act_lay = QHBoxLayout(act_widget); act_lay.setContentsMargins(0, 0, 0, 0); act_lay.setSpacing(4)
+            act_lay = QHBoxLayout(act_widget)
+            act_lay.setContentsMargins(0, 0, 0, 0)
+            act_lay.setSpacing(4)
+
+            btn_att = QPushButton("📋 Mark Att", self)
+            btn_att.setStyleSheet("background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; padding: 3px 8px; border-radius: 4px; font-size: 11px;")
+            btn_att.clicked.connect(lambda checked, item=t: self.quick_log_slot_attendance(item, "Present"))
+            act_lay.addWidget(btn_att)
 
             btn_edit = QPushButton("Edit", self)
             btn_edit.clicked.connect(lambda checked, item=t: self.open_timetable_dialog(item))
             act_lay.addWidget(btn_edit)
 
-            btn_del = QPushButton("Delete", self); btn_del.setProperty("class", "danger")
+            btn_del = QPushButton("Delete", self)
+            btn_del.setProperty("class", "danger")
             btn_del.clicked.connect(lambda checked, tid=t['id']: self.delete_tt(tid))
             act_lay.addWidget(btn_del)
 
-            self.tt_table.setCellWidget(row, 5, act_widget)
+            self.tt_table.setCellWidget(row, 6, act_widget)
+
+    def quick_log_active_lecture(self, status="Present"):
+        if hasattr(self, 'current_active_or_next_slot') and self.current_active_or_next_slot:
+            self.quick_log_slot_attendance(self.current_active_or_next_slot, status)
+        else:
+            QMessageBox.information(self, "No Active Class", "No active or upcoming class to log attendance for right now.")
+
+    def quick_log_slot_attendance(self, slot, status="Present"):
+        today_str = date.today().isoformat()
+        sub_name = slot.get('subject', '').strip()
+        if not sub_name:
+            return
+        sem = slot.get('sem', 1)
+
+        sub_obj = next((s for s in self.data['subjects'] if s['name'].lower() == sub_name.lower()), None)
+        if not sub_obj:
+            sub_id = f"sub-{int(datetime.now().timestamp())}"
+            sub_obj = {
+                'id': sub_id,
+                'sem': sem,
+                'name': sub_name,
+                'code': sub_name[:6].upper(),
+                'faculty': slot.get('instructor', 'Faculty'),
+                'targetPct': self.profile.get('targetAttendancePct', 85.0),
+                'color': '#6366f1'
+            }
+            db.save_subject(sub_obj)
+        else:
+            sub_id = sub_obj['id']
+
+        att_id = f"att-{int(datetime.now().timestamp())}"
+        db.save_attendance({
+            'id': att_id,
+            'sem': sem,
+            'subjectId': sub_id,
+            'subjectName': sub_name,
+            'date': today_str,
+            'status': status,
+            'remarks': f"1-Click Timetable Log ({slot.get('start', '')} - {slot.get('end', '')})"
+        })
+        self.refresh_all_views()
+        self.send_notification("Attendance Recorded 📋", f"{status} logged for {sub_name} on {today_str}")
+        QMessageBox.information(self, "Attendance Logged", f"Logged {status} for '{sub_name}' on {today_str}!")
+
+    def load_sample_schedule(self):
+        reply = QMessageBox.question(
+            self, "Load Sample Schedule",
+            "Would you like to populate standard NMIMS BBA IB Semester 1 lecture slots into your timetable?\n"
+            "(Existing custom slots will be preserved)",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            sample_slots = [
+                {"day": "Monday", "start": "09:00 AM", "end": "10:30 AM", "subject": "International Business", "location": "Room 302", "instructor": "Prof. Sharma", "sem": 1},
+                {"day": "Monday", "start": "11:00 AM", "end": "12:30 PM", "subject": "Financial Accounting", "location": "Room 304", "instructor": "Prof. Mehta", "sem": 1},
+                {"day": "Tuesday", "start": "09:30 AM", "end": "11:00 AM", "subject": "Business Economics", "location": "Room 201", "instructor": "Dr. Verma", "sem": 1},
+                {"day": "Tuesday", "start": "11:30 AM", "end": "01:00 PM", "subject": "Business Statistics", "location": "Lab 2", "instructor": "Prof. Gupta", "sem": 1},
+                {"day": "Wednesday", "start": "09:00 AM", "end": "10:30 AM", "subject": "International Business", "location": "Room 302", "instructor": "Prof. Sharma", "sem": 1},
+                {"day": "Wednesday", "start": "11:00 AM", "end": "12:30 PM", "subject": "Financial Accounting", "location": "Room 304", "instructor": "Prof. Mehta", "sem": 1},
+                {"day": "Thursday", "start": "09:30 AM", "end": "11:00 AM", "subject": "Business Economics", "location": "Room 201", "instructor": "Dr. Verma", "sem": 1},
+                {"day": "Thursday", "start": "11:30 AM", "end": "01:00 PM", "subject": "Business Statistics", "location": "Lab 2", "instructor": "Prof. Gupta", "sem": 1},
+                {"day": "Friday", "start": "10:00 AM", "end": "12:00 PM", "subject": "Corporate Communication", "location": "Auditorium 1", "instructor": "Prof. Roy", "sem": 1},
+            ]
+            import time
+            for idx, s in enumerate(sample_slots):
+                s['id'] = f"tt-sample-{int(time.time())}-{idx}"
+                db.save_timetable(s)
+            self.refresh_all_views()
+            QMessageBox.information(self, "Sample Schedule Loaded", "Loaded 9 standard lecture slots into your Timetable!")
+
 
     def delete_tt(self, tid):
         if QMessageBox.question(self, "Confirm Delete", "Delete slot?") == QMessageBox.StandardButton.Yes:

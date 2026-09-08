@@ -372,6 +372,36 @@ def delete_attendance(att_id):
     conn.commit()
     conn.close()
 
+def get_attendance_logs(subject_id=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    if subject_id:
+        cursor.execute("SELECT * FROM attendance_logs WHERE subjectId = ?", (subject_id,))
+    else:
+        cursor.execute("SELECT * FROM attendance_logs ORDER BY date DESC")
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+def get_subjects():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM subjects")
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+def get_timetable(day=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    if day:
+        cursor.execute("SELECT * FROM timetable WHERE LOWER(day) = LOWER(?) ORDER BY start", (day,))
+    else:
+        cursor.execute("SELECT * FROM timetable ORDER BY sem, day, start")
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
 def save_finance(fin_dict):
     conn = get_connection()
     conn.execute('''
