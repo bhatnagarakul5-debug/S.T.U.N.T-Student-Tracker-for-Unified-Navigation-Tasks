@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QGraphicsOpacityEffect, QScrollArea, QGridLayout, QFormLayout,
     QSystemTrayIcon, QSplitter
 )
-from PyQt6.QtGui import QIcon, QPixmap, QColor, QFont, QImage, QDesktopServices
+from PyQt6.QtGui import QIcon, QPixmap, QColor, QFont, QImage, QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 
@@ -448,28 +448,47 @@ class CopyrightDialog(QDialog):
     def read_aloud(self):
         speak_text("Copyright 2026 Akul. All Rights Reserved. All intellectual property belongs exclusively to Akul.")
 
-# Interactive Flashcard Viewer Window
+# Interactive Flashcard Viewer & Revision Studio Window
 class FlashcardDialog(QDialog):
     def __init__(self, flashcards, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Syllabus Flashcards Revision Matrix 🎴")
-        self.setFixedSize(500, 360)
-        self.flashcards = flashcards
+        self.setWindowTitle("Syllabus Flashcards Revision Studio 🎴")
+        self.setFixedSize(540, 420)
+        self.flashcards = list(flashcards)
         self.idx = 0
         self.showing_answer = False
 
-        lay = QVBoxLayout(self); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(16)
+        lay = QVBoxLayout(self); lay.setContentsMargins(24, 20, 24, 20); lay.setSpacing(12)
 
+        top_bar = QHBoxLayout()
         self.lbl_counter = QLabel(self); self.lbl_counter.setStyleSheet("color: #64748b; font-weight: bold;")
-        lay.addWidget(self.lbl_counter, alignment=Qt.AlignmentFlag.AlignCenter)
+        top_bar.addWidget(self.lbl_counter)
+        top_bar.addStretch()
 
-        self.card_box = QFrame(self); self.card_box.setProperty("class", "card"); self.card_box.setMinimumHeight(180)
+        btn_add = QPushButton("➕ Add Flashcard", self); btn_add.setProperty("class", "success")
+        btn_add.clicked.connect(self.open_add_dialog)
+        top_bar.addWidget(btn_add)
+
+        btn_shuffle = QPushButton("🔀 Shuffle", self)
+        btn_shuffle.clicked.connect(self.shuffle_cards)
+        top_bar.addWidget(btn_shuffle)
+
+        self.btn_del = QPushButton("🗑️", self); self.btn_del.setProperty("class", "danger")
+        self.btn_del.setToolTip("Delete current flashcard")
+        self.btn_del.clicked.connect(self.delete_current_card)
+        top_bar.addWidget(self.btn_del)
+        lay.addLayout(top_bar)
+
+        self.card_box = QFrame(self); self.card_box.setProperty("class", "card"); self.card_box.setMinimumHeight(200)
         cb_lay = QVBoxLayout(self.card_box)
 
+        card_meta = QHBoxLayout()
         self.lbl_subject = QLabel(self); self.lbl_subject.setStyleSheet("color: #0ea5e9; font-weight: bold;")
-        self.lbl_text = QLabel(self); self.lbl_text.setStyleSheet("font-size: 16px; font-weight: bold; color: #ffffff;"); self.lbl_text.setWordWrap(True)
+        self.lbl_status = QLabel(self); self.lbl_status.setStyleSheet("font-size: 11px; font-weight: bold; color: #f59e0b;")
+        card_meta.addWidget(self.lbl_subject); card_meta.addStretch(); card_meta.addWidget(self.lbl_status)
+        cb_lay.addLayout(card_meta)
 
-        cb_lay.addWidget(self.lbl_subject)
+        self.lbl_text = QLabel(self); self.lbl_text.setStyleSheet("font-size: 16px; font-weight: bold; color: #ffffff;"); self.lbl_text.setWordWrap(True)
         cb_lay.addWidget(self.lbl_text, alignment=Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(self.card_box)
 
@@ -477,28 +496,43 @@ class FlashcardDialog(QDialog):
         btn_prev = QPushButton("◀ Previous", self); btn_prev.clicked.connect(self.prev_card)
         self.btn_flip = QPushButton("🔄 Flip (Show Answer)", self); self.btn_flip.setProperty("class", "primary"); self.btn_flip.clicked.connect(self.flip_card)
         btn_next = QPushButton("Next ▶", self); btn_next.clicked.connect(self.next_card)
-
         nav_lay.addWidget(btn_prev); nav_lay.addWidget(self.btn_flip); nav_lay.addWidget(btn_next)
         lay.addLayout(nav_lay)
+
+        bottom_actions = QHBoxLayout()
+        self.btn_master = QPushButton("⭐ Toggle Mastered Status", self)
+        self.btn_master.clicked.connect(self.toggle_mastered)
+        bottom_actions.addWidget(self.btn_master)
+        lay.addLayout(bottom_actions)
 
         self.render_card()
 
     def render_card(self):
         if not self.flashcards:
-            self.lbl_counter.setText("0 / 0")
+            self.lbl_counter.setText("0 / 0 Cards")
             self.lbl_subject.setText("No Flashcards")
-            self.lbl_text.setText("Add flashcards to start revision testing!")
+            self.lbl_status.setText("")
+            self.lbl_text.setText("No flashcards found.\nClick '➕ Add Flashcard' above to create revision questions!")
+            self.lbl_text.setStyleSheet("font-size: 14px; color: #94a3b8;")
+            self.btn_del.setEnabled(False)
+            self.btn_master.setEnabled(False)
             return
 
+        self.btn_del.setEnabled(True)
+        self.btn_master.setEnabled(True)
         fc = self.flashcards[self.idx]
+        status = fc.get('status', 'Learning')
         self.lbl_counter.setText(f"Card {self.idx + 1} of {len(self.flashcards)}")
-        self.lbl_subject.setText(f"Subject: {fc['subjectName']}")
+        self.lbl_subject.setText(f"Subject: {fc.get('subjectName', 'General')}")
+        self.lbl_status.setText(f"Status: {status}")
+        self.lbl_status.setStyleSheet("color: #10b981; font-weight: bold;" if status == 'Mastered' else "color: #f59e0b; font-weight: bold;")
+
         if self.showing_answer:
-            self.lbl_text.setText(f"ANSWER:\n\n{fc['answer']}")
+            self.lbl_text.setText(f"ANSWER:\n\n{fc.get('answer', '')}")
             self.lbl_text.setStyleSheet("font-size: 15px; font-weight: bold; color: #10b981;")
             self.btn_flip.setText("🔄 Flip (Show Question)")
         else:
-            self.lbl_text.setText(f"QUESTION:\n\n{fc['question']}")
+            self.lbl_text.setText(f"QUESTION:\n\n{fc.get('question', '')}")
             self.lbl_text.setStyleSheet("font-size: 15px; font-weight: bold; color: #ffffff;")
             self.btn_flip.setText("🔄 Flip (Show Answer)")
 
@@ -517,6 +551,96 @@ class FlashcardDialog(QDialog):
             self.idx = (self.idx + 1) % len(self.flashcards)
             self.showing_answer = False
             self.render_card()
+
+    def shuffle_cards(self):
+        import random
+        if self.flashcards:
+            random.shuffle(self.flashcards)
+            self.idx = 0
+            self.showing_answer = False
+            self.render_card()
+
+    def toggle_mastered(self):
+        if not self.flashcards:
+            return
+        fc = self.flashcards[self.idx]
+        cur = fc.get('status', 'Learning')
+        new_stat = 'Mastered' if cur != 'Mastered' else 'Learning'
+        fc['status'] = new_stat
+        db.save_flashcard(fc)
+        self.render_card()
+        if self.parent() and hasattr(self.parent(), 'refresh_all_views'):
+            self.parent().refresh_all_views()
+
+    def open_add_dialog(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Create New Flashcard")
+        dlg.setFixedWidth(400)
+        lay = QVBoxLayout(dlg)
+
+        sub_combo = QComboBox(dlg)
+        sub_combo.setEditable(True)
+        if self.parent() and hasattr(self.parent(), 'data'):
+            for s in self.parent().data.get('subjects', []):
+                sub_combo.addItem(s['name'])
+        if sub_combo.count() == 0:
+            sub_combo.addItem("Computer Science")
+
+        q_edit = QTextEdit(dlg)
+        q_edit.setPlaceholderText("Enter Question / Concept Prompt...")
+        q_edit.setFixedHeight(75)
+
+        a_edit = QTextEdit(dlg)
+        a_edit.setPlaceholderText("Enter Clear Answer / Definition...")
+        a_edit.setFixedHeight(85)
+
+        lay.addWidget(QLabel("Subject:", dlg)); lay.addWidget(sub_combo)
+        lay.addWidget(QLabel("Question:", dlg)); lay.addWidget(q_edit)
+        lay.addWidget(QLabel("Answer:", dlg)); lay.addWidget(a_edit)
+
+        btn_save = QPushButton("Save Flashcard", dlg); btn_save.setProperty("class", "primary")
+        lay.addWidget(btn_save)
+
+        def save():
+            sub_name = sub_combo.currentText().strip() or "General"
+            q_text = q_edit.toPlainText().strip()
+            a_text = a_edit.toPlainText().strip()
+            if not q_text or not a_text:
+                QMessageBox.warning(dlg, "Incomplete", "Please enter both a question and an answer.")
+                return
+
+            new_fc = {
+                'id': f"fc-{int(datetime.now().timestamp())}",
+                'subjectName': sub_name,
+                'question': q_text,
+                'answer': a_text,
+                'status': 'Learning'
+            }
+            db.save_flashcard(new_fc)
+            self.flashcards.append(new_fc)
+            self.idx = len(self.flashcards) - 1
+            self.showing_answer = False
+            self.render_card()
+            if self.parent() and hasattr(self.parent(), 'refresh_all_views'):
+                self.parent().refresh_all_views()
+            dlg.accept()
+
+        btn_save.clicked.connect(save)
+        dlg.exec()
+
+    def delete_current_card(self):
+        if not self.flashcards:
+            return
+        fc = self.flashcards[self.idx]
+        if QMessageBox.question(self, "Delete Flashcard", f"Delete flashcard for '{fc.get('subjectName', 'card')}'?") == QMessageBox.StandardButton.Yes:
+            db.delete_flashcard(fc['id'])
+            del self.flashcards[self.idx]
+            if self.idx >= len(self.flashcards):
+                self.idx = max(0, len(self.flashcards) - 1)
+            self.showing_answer = False
+            self.render_card()
+            if self.parent() and hasattr(self.parent(), 'refresh_all_views'):
+                self.parent().refresh_all_views()
 
 # Task & Savings Celebration Window
 class TaskCelebrationWindow(QDialog):
@@ -643,12 +767,15 @@ class StuntMainWindow(QMainWindow):
         self.data = db.get_all_data()
         self.profile = db.get_profile()
 
+        self.pomo_mode = "Focus"
         self.pomo_seconds = 25 * 60
         self.pomo_is_running = False
+        self.pomo_sessions = 0
         self.pomo_timer = QTimer(self)
         self.pomo_timer.timeout.connect(self.pomo_tick)
 
-        # Background Timetable Lecture Alarm Timer (checks every 60s)
+        # Smart Lecture Alarm - deduplicated per class per day
+        self.notified_lecture_alarms = set()
         self.alarm_timer = QTimer(self)
         self.alarm_timer.timeout.connect(self.check_lecture_alarms)
         self.alarm_timer.start(60000)
@@ -662,13 +789,16 @@ class StuntMainWindow(QMainWindow):
 
     def check_lecture_alarms(self):
         today_str = datetime.now().strftime("%A")
+        today_date = date.today().strftime("%Y-%m-%d")
         now_time = datetime.now()
         for slot in self.data.get('timetable', []):
             if slot['day'] == today_str:
                 try:
                     slot_t = datetime.strptime(slot['start'], "%I:%M %p").replace(year=now_time.year, month=now_time.month, day=now_time.day)
                     diff = (slot_t - now_time).total_seconds()
-                    if 0 <= diff <= 900: # Within 15 mins
+                    alarm_key = (slot['id'], today_date)
+                    if 0 <= diff <= 900 and alarm_key not in self.notified_lecture_alarms: # Within 15 mins
+                        self.notified_lecture_alarms.add(alarm_key)
                         self.send_notification("Upcoming Lecture Alarm! ⏰", f"Class '{slot['subject']}' in 15 mins at {slot['location']}")
                 except ValueError:
                     pass
@@ -824,8 +954,12 @@ class StuntMainWindow(QMainWindow):
         card_badges = QFrame(self); card_badges.setProperty("class", "card")
         cb_lay = QVBoxLayout(card_badges)
         cb_lay.addWidget(QLabel("🏆 STUDENT BADGES & XP", self))
-        self.lbl_badges = QLabel("🥇 Dean's List | 🟢 Bunk Master\n💰 Savings Master | ⏱️ Focus Beast", self)
+        self.lbl_xp = QLabel("Level 1 Scholar • 0 XP", self)
+        self.lbl_xp.setStyleSheet("font-size: 12px; color: #10b981; font-weight: bold;")
+        cb_lay.addWidget(self.lbl_xp)
+        self.lbl_badges = QLabel("Calculating achievements...", self)
         self.lbl_badges.setStyleSheet("font-size: 11px; color: #f59e0b; font-weight: bold;")
+        self.lbl_badges.setWordWrap(True)
         cb_lay.addWidget(self.lbl_badges)
         drawer_layout.addWidget(card_badges)
 
@@ -852,6 +986,17 @@ class StuntMainWindow(QMainWindow):
 
         drawer_layout.addStretch()
         main_layout.addWidget(self.drawer)
+
+        # Global Navigation Hotkeys (Ctrl+1 to Ctrl+9, Ctrl+T, Ctrl+A)
+        for i in range(min(9, len(nav_items))):
+            sc = QShortcut(QKeySequence(f"Ctrl+{i+1}"), self)
+            sc.activated.connect(lambda checked=False, idx=i: self.switch_view(idx))
+
+        sc_task = QShortcut(QKeySequence("Ctrl+T"), self)
+        sc_task.activated.connect(lambda: self.open_task_dialog())
+
+        sc_att = QShortcut(QKeySequence("Ctrl+A"), self)
+        sc_att.activated.connect(lambda: self.open_attendance_dialog())
 
         self.switch_view(0)
         self.refresh_all_views()
@@ -949,14 +1094,6 @@ class StuntMainWindow(QMainWindow):
         hc_lay.addWidget(QLabel("📈 7-DAY PRODUCTIVITY & STUDY ACTIVITY HEATMAP", self))
 
         self.heat_grid_lay = QHBoxLayout()
-        for i in range(7):
-            day_box = QFrame(self); day_box.setFixedSize(60, 48); day_box.setStyleSheet("background: rgba(99, 102, 241, 0.2); border-radius: 6px;")
-            db_lay = QVBoxLayout(day_box); db_lay.setContentsMargins(4,4,4,4)
-            lbl = QLabel(f"Day {i+1}", day_box); lbl.setStyleSheet("font-size: 10px; color: #cbd5e1;"); lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            val = QLabel("Active", day_box); val.setStyleSheet("font-weight: bold; color: #10b981; font-size: 11px;"); val.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            db_lay.addWidget(lbl); db_lay.addWidget(val)
-            self.heat_grid_lay.addWidget(day_box)
-
         hc_lay.addLayout(self.heat_grid_lay)
         lay.addWidget(heat_card)
 
@@ -1031,14 +1168,24 @@ class StuntMainWindow(QMainWindow):
     def run_whatif_simulation(self):
         try:
             exp_sgpa = float(self.sim_sgpa_in.text())
+            if not (0.0 <= exp_sgpa <= 10.0):
+                QMessageBox.warning(self, "Invalid Input", "SGPA must be between 0.0 and 10.0.")
+                return
             grades = self.data.get('grades', [])
-            done_sems = max(1, max((g['sem'] for g in grades), default=1))
             total_pts = sum(g['credits'] * g['gradePoints'] for g in grades)
             total_creds = sum(g['credits'] for g in grades)
             cur_cgpa = (total_pts / total_creds) if total_creds > 0 else 0.0
 
-            sim_cgpa = ((cur_cgpa * done_sems) + exp_sgpa) / (done_sems + 1)
-            self.lbl_sim_res.setText(f"Simulated CGPA after Sem {done_sems+1}: {sim_cgpa:.2f}")
+            sems_with_grades = sorted(list(set(g['sem'] for g in grades)))
+            done_sems = len(sems_with_grades)
+            if done_sems == 0:
+                sim_cgpa = exp_sgpa
+                next_sem = 1
+            else:
+                sim_cgpa = ((cur_cgpa * done_sems) + exp_sgpa) / (done_sems + 1)
+                next_sem = max(sems_with_grades) + 1
+
+            self.lbl_sim_res.setText(f"Simulated CGPA after Sem {next_sem}: {sim_cgpa:.2f}")
         except ValueError:
             QMessageBox.warning(self, "Invalid Input", "Enter a valid SGPA number between 0 and 10.")
 
@@ -1106,16 +1253,64 @@ class StuntMainWindow(QMainWindow):
 
     def open_subject_note_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select PDF / Note File", "", "All Documents (*.pdf *.png *.jpg *.txt *.docx);;All Files (*)")
-        if file_path:
+        if not file_path:
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Add Note / PYQ to Vault")
+        dlg.setFixedWidth(380)
+        lay = QVBoxLayout(dlg)
+
+        sub_combo = QComboBox(dlg)
+        sub_combo.setEditable(True)
+        for s in self.data.get('subjects', []):
+            sub_combo.addItem(f"{s['name']} ({s['code']})", s['name'])
+        if sub_combo.count() == 0:
+            sub_combo.addItem("General Academics", "General Academics")
+
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        title_in = QLineEdit(dlg)
+        title_in.setText(base_name)
+
+        doc_type_combo = QComboBox(dlg)
+        doc_type_combo.addItems(["PDF", "PYQ", "Notes", "Assignment", "Cheatsheet", "Lab Manual"])
+
+        lay.addWidget(QLabel("Target Subject:", dlg))
+        lay.addWidget(sub_combo)
+        lay.addWidget(QLabel("Document Title / Topic:", dlg))
+        lay.addWidget(title_in)
+        lay.addWidget(QLabel("Resource Type:", dlg))
+        lay.addWidget(doc_type_combo)
+
+        lbl_path = QLabel(f"File: {os.path.basename(file_path)}", dlg)
+        lbl_path.setStyleSheet("color: #64748b; font-size: 11px;")
+        lay.addWidget(lbl_path)
+
+        btn_save = QPushButton("Save to Vault 📁", dlg)
+        btn_save.setProperty("class", "primary")
+        lay.addWidget(btn_save)
+
+        def save():
+            sub_name = sub_combo.currentText().strip()
+            if "(" in sub_name and ")" in sub_name:
+                sub_name = sub_name.split("(")[0].strip()
+            title = title_in.text().strip() or os.path.basename(file_path)
+            ftype = doc_type_combo.currentText()
+
             db.save_subject_note({
                 'id': f"sn-{int(datetime.now().timestamp())}",
-                'subjectName': 'Computer Science',
-                'title': os.path.basename(file_path),
-                'fileType': os.path.splitext(file_path)[1].replace('.', '').upper() or 'FILE',
+                'subjectName': sub_name or "General Academics",
+                'title': title,
+                'fileType': ftype,
                 'filePath': file_path,
                 'date': date.today().strftime("%Y-%m-%d")
             })
+            dlg.accept()
             self.refresh_all_views()
+            self.send_notification("Document Added 📝", f"Saved '{title}' under {sub_name}")
+
+        btn_save.clicked.connect(save)
+        dlg.exec()
 
     # 4. TASKS & POMODORO VIEW (with Draggable Size Ratio Splitter)
     def init_tasks_view(self):
@@ -1142,9 +1337,26 @@ class StuntMainWindow(QMainWindow):
         top_split.addWidget(prog_card, stretch=2)
 
         pomo_card = QFrame(self); pomo_card.setProperty("class", "card"); po_lay = QVBoxLayout(pomo_card)
-        po_lay.addWidget(QLabel("⏱️ POMODORO FOCUS TIMER", self))
-        self.lbl_pomo_clock = QLabel("25:00", self); self.lbl_pomo_clock.setStyleSheet("font-size: 24px; font-weight: bold; color: #10b981;")
+        pomo_hdr = QHBoxLayout()
+        pomo_hdr.addWidget(QLabel("⏱️ POMODORO FOCUS TIMER", self))
+        pomo_hdr.addStretch()
+        self.lbl_pomo_sessions = QLabel("Completed: 0 sessions", self)
+        self.lbl_pomo_sessions.setStyleSheet("font-size: 11px; color: #10b981; font-weight: bold;")
+        pomo_hdr.addWidget(self.lbl_pomo_sessions)
+        po_lay.addLayout(pomo_hdr)
+
+        self.lbl_pomo_clock = QLabel("25:00", self); self.lbl_pomo_clock.setStyleSheet("font-size: 26px; font-weight: bold; color: #10b981;")
         po_lay.addWidget(self.lbl_pomo_clock, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        modes_lay = QHBoxLayout()
+        btn_m_focus = QPushButton("Focus (25m)", self); btn_m_focus.setStyleSheet("font-size: 11px; padding: 4px;")
+        btn_m_focus.clicked.connect(lambda: self.set_pomo_mode("Focus"))
+        btn_m_short = QPushButton("Short Break (5m)", self); btn_m_short.setStyleSheet("font-size: 11px; padding: 4px;")
+        btn_m_short.clicked.connect(lambda: self.set_pomo_mode("Short Break"))
+        btn_m_long = QPushButton("Long Break (15m)", self); btn_m_long.setStyleSheet("font-size: 11px; padding: 4px;")
+        btn_m_long.clicked.connect(lambda: self.set_pomo_mode("Long Break"))
+        modes_lay.addWidget(btn_m_focus); modes_lay.addWidget(btn_m_short); modes_lay.addWidget(btn_m_long)
+        po_lay.addLayout(modes_lay)
 
         pomo_btn_lay = QHBoxLayout()
         self.btn_pomo_toggle = QPushButton("Start Focus", self); self.btn_pomo_toggle.setProperty("class", "success"); self.btn_pomo_toggle.clicked.connect(self.toggle_pomo)
@@ -1172,15 +1384,31 @@ class StuntMainWindow(QMainWindow):
         main_lay.addWidget(splitter)
         self.views_stack.addWidget(view)
 
+    def set_pomo_mode(self, mode):
+        self.pomo_mode = mode
+        self.reset_pomo()
+
     def toggle_pomo(self):
         if self.pomo_is_running:
-            self.pomo_timer.stop(); self.pomo_is_running = False; self.btn_pomo_toggle.setText("Resume Focus")
+            self.pomo_timer.stop(); self.pomo_is_running = False; self.btn_pomo_toggle.setText(f"Resume {self.pomo_mode}")
         else:
             self.pomo_timer.start(1000); self.pomo_is_running = True; self.btn_pomo_toggle.setText("Pause")
 
     def reset_pomo(self):
-        self.pomo_timer.stop(); self.pomo_is_running = False; self.pomo_seconds = 25 * 60
-        self.lbl_pomo_clock.setText("25:00"); self.btn_pomo_toggle.setText("Start Focus")
+        self.pomo_timer.stop(); self.pomo_is_running = False
+        if self.pomo_mode == "Focus":
+            self.pomo_seconds = 25 * 60
+            self.lbl_pomo_clock.setText("25:00")
+            self.lbl_pomo_clock.setStyleSheet("font-size: 26px; font-weight: bold; color: #10b981;")
+        elif self.pomo_mode == "Short Break":
+            self.pomo_seconds = 5 * 60
+            self.lbl_pomo_clock.setText("05:00")
+            self.lbl_pomo_clock.setStyleSheet("font-size: 26px; font-weight: bold; color: #0ea5e9;")
+        else: # Long Break
+            self.pomo_seconds = 15 * 60
+            self.lbl_pomo_clock.setText("15:00")
+            self.lbl_pomo_clock.setStyleSheet("font-size: 26px; font-weight: bold; color: #f59e0b;")
+        self.btn_pomo_toggle.setText(f"Start {self.pomo_mode}")
 
     def pomo_tick(self):
         if self.pomo_seconds > 0:
@@ -1188,8 +1416,21 @@ class StuntMainWindow(QMainWindow):
             mins = self.pomo_seconds // 60; secs = self.pomo_seconds % 60
             self.lbl_pomo_clock.setText(f"{mins:02d}:{secs:02d}")
         else:
-            self.reset_pomo()
-            self.send_notification("Pomodoro Completed! 🍅", "Great 25-minute focus session! Take a 5-minute break.")
+            self.pomo_timer.stop()
+            self.pomo_is_running = False
+            if self.pomo_mode == "Focus":
+                self.pomo_sessions += 1
+                if hasattr(self, 'lbl_pomo_sessions'):
+                    self.lbl_pomo_sessions.setText(f"Completed: {self.pomo_sessions} sessions")
+                self.send_notification("Focus Session Done! 🍅", "Great 25-minute focus session! Take a 5-minute break (+30 XP).")
+                self.set_pomo_mode("Short Break")
+            elif self.pomo_mode == "Short Break":
+                self.send_notification("Break Ended! 🔔", "Break time is up. Ready for another focus session?")
+                self.set_pomo_mode("Focus")
+            else:
+                self.send_notification("Long Break Ended! 🔔", "Long break is complete. Time to get back in the zone!")
+                self.set_pomo_mode("Focus")
+            self.refresh_badges_and_xp()
 
     # 5. ATTENDANCE & BUNK SAFETY CALCULATOR VIEW (with Draggable Size Ratio Splitter)
     def init_attendance_view(self):
@@ -1361,13 +1602,20 @@ class StuntMainWindow(QMainWindow):
         btn_save.clicked.connect(save)
         dlg.exec()
 
-    # 7. TIMETABLE VIEW (with .ics Export)
+    # 7. TIMETABLE VIEW (with .ics Export & Semester Filter)
     def init_timetable_view(self):
         view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24)
 
         hdr_lay = QHBoxLayout()
         hdr_lay.addWidget(QLabel("Weekly Lecture Timetable", self))
         hdr_lay.addStretch()
+
+        self.tt_sem_filter = QComboBox(self)
+        self.tt_sem_filter.addItem("All Semesters", 0)
+        for i in range(1, 11):
+            self.tt_sem_filter.addItem(f"Semester {i}", i)
+        self.tt_sem_filter.currentIndexChanged.connect(self.refresh_timetable_table)
+        hdr_lay.addWidget(self.tt_sem_filter)
 
         btn_ics = QPushButton("📅 Export .ics Calendar File", self); btn_ics.setProperty("class", "success"); btn_ics.clicked.connect(self.export_ics_calendar)
         hdr_lay.addWidget(btn_ics)
@@ -1378,7 +1626,7 @@ class StuntMainWindow(QMainWindow):
 
         self.tt_table = QTableWidget(self)
         self.tt_table.setColumnCount(6)
-        self.tt_table.setHorizontalHeaderLabels(["Day", "Time", "Subject", "Location", "Instructor", "Actions"])
+        self.tt_table.setHorizontalHeaderLabels(["Day / Sem", "Time", "Subject", "Location", "Instructor", "Actions"])
         self.tt_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         lay.addWidget(self.tt_table)
 
@@ -1396,7 +1644,7 @@ class StuntMainWindow(QMainWindow):
                 ics_lines.extend([
                     "BEGIN:VEVENT",
                     f"SUMMARY:{slot['subject']} ({slot['location']})",
-                    f"DESCRIPTION:Instructor: {slot['instructor']} | Day: {slot['day']}",
+                    f"DESCRIPTION:Instructor: {slot['instructor']} | Day: {slot['day']} | Sem {slot.get('sem', 1)}",
                     f"LOCATION:{slot['location']}",
                     "END:VEVENT"
                 ])
@@ -1406,7 +1654,7 @@ class StuntMainWindow(QMainWindow):
                 f.write("\n".join(ics_lines))
             QMessageBox.information(self, "ICS Calendar Exported", f".ics file exported to {file_path}!\nYou can double-click it to open in Google Calendar, Apple Calendar, or Outlook.")
 
-    # 8. MEMORIES VIEW
+    # 8. MEMORIES VIEW (with Double-Click High-Res Preview & Deletion)
     def init_memories_view(self):
         view = QWidget(self); lay = QVBoxLayout(view); lay.setContentsMargins(24, 24, 24, 24)
 
@@ -1420,6 +1668,7 @@ class StuntMainWindow(QMainWindow):
         self.mem_list = QListWidget(self)
         self.mem_list.setIconSize(QSize(160, 120))
         self.mem_list.setViewMode(QListWidget.ViewMode.IconMode)
+        self.mem_list.itemDoubleClicked.connect(self.view_memory_dialog)
         lay.addWidget(self.mem_list)
 
         self.views_stack.addWidget(view)
@@ -1558,8 +1807,122 @@ class StuntMainWindow(QMainWindow):
         self.refresh_timetable_table()
         self.refresh_memories_grid()
         self.refresh_milestones_table()
+        self.refresh_heatmap()
+        self.refresh_badges_and_xp()
 
         self.finance_canvas.update_charts(self.data['finances'])
+
+    # DYNAMIC 7-DAY PRODUCTIVITY HEATMAP
+    def refresh_heatmap(self):
+        if not hasattr(self, 'heat_grid_lay'):
+            return
+
+        while self.heat_grid_lay.count():
+            item = self.heat_grid_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        today = date.today()
+        dates_to_check = [today - timedelta(days=i) for i in range(6, -1, -1)]
+
+        for d in dates_to_check:
+            d_str = d.strftime("%Y-%m-%d")
+            att_c = sum(1 for l in self.data.get('attendanceLogs', []) if l.get('date') == d_str)
+            tasks_c = sum(1 for t in self.data.get('tasks', []) if t.get('dueDate') == d_str and t.get('status') == 'Completed')
+            fin_c = sum(1 for f in self.data.get('finances', []) if f.get('date') == d_str)
+            mem_c = sum(1 for m in self.data.get('memories', []) if m.get('date') == d_str)
+            ms_c = sum(1 for ms in self.data.get('milestones', []) if ms.get('date') == d_str)
+            tot_acts = att_c + tasks_c + fin_c + mem_c + ms_c
+
+            day_box = QFrame(self)
+            day_box.setFixedSize(72, 54)
+
+            if tot_acts == 0:
+                day_box.setStyleSheet("background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px;")
+                val_text = "Idle"
+                val_color = "#64748b"
+            elif tot_acts <= 2:
+                day_box.setStyleSheet("background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(99, 102, 241, 0.5); border-radius: 6px;")
+                val_text = f"{tot_acts} Log{'s' if tot_acts > 1 else ''}"
+                val_color = "#818cf8"
+            else:
+                day_box.setStyleSheet("background: rgba(16, 185, 129, 0.25); border: 1px solid rgba(16, 185, 129, 0.6); border-radius: 6px;")
+                val_text = f"{tot_acts} Active"
+                val_color = "#10b981"
+
+            db_lay = QVBoxLayout(day_box)
+            db_lay.setContentsMargins(4, 4, 4, 4)
+            db_lay.setSpacing(2)
+
+            day_name = d.strftime("%a %d")
+            lbl = QLabel(day_name, day_box)
+            lbl.setStyleSheet("font-size: 10px; color: #cbd5e1;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            val = QLabel(val_text, day_box)
+            val.setStyleSheet(f"font-weight: bold; color: {val_color}; font-size: 11px;")
+            val.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            db_lay.addWidget(lbl)
+            db_lay.addWidget(val)
+            self.heat_grid_lay.addWidget(day_box)
+
+    # DYNAMIC STUDENT BADGES & XP PROGRESSION
+    def refresh_badges_and_xp(self):
+        grades = self.data.get('grades', [])
+        total_pts = sum(g['credits'] * g['gradePoints'] for g in grades)
+        total_creds = sum(g['credits'] for g in grades)
+        cgpa = (total_pts / total_creds) if total_creds > 0 else 0.00
+
+        logs = self.data.get('attendanceLogs', [])
+        p_count = sum(1 for l in logs if l['status'] == 'Present')
+        att_pct = (p_count / len(logs) * 100.0) if logs else 0.0
+
+        tasks = self.data.get('tasks', [])
+        tasks_done = sum(1 for t in tasks if t['status'] == 'Completed')
+
+        syl = self.data.get('syllabus', [])
+        syl_done = sum(1 for item in syl if item['status'] == 'Completed')
+
+        savings = self.data.get('savingsGoals', [])
+        savings_mastered = sum(1 for sg in savings if sg['currentSaved'] >= sg['targetAmount'] and sg['targetAmount'] > 0)
+
+        # Gamified Student XP
+        xp = (tasks_done * 25) + (len(logs) * 10) + (syl_done * 20) + (self.pomo_sessions * 30) + (savings_mastered * 50)
+        level = 1 + (xp // 100)
+
+        if hasattr(self, 'lbl_xp'):
+            self.lbl_xp.setText(f"Level {level} Scholar • {xp} XP")
+
+        unlocked = []
+        if cgpa >= 9.0 and total_creds > 0:
+            unlocked.append("🥇 Dean's List")
+        elif total_creds > 0:
+            unlocked.append(f"🎓 Honor Track ({cgpa:.2f}/9.0)")
+
+        target_att = self.profile.get('targetAttendancePct', 75.0)
+        if att_pct >= target_att and len(logs) > 0:
+            unlocked.append("🟢 Bunk Master")
+        elif len(logs) > 0:
+            unlocked.append("⚠️ Att Warning")
+
+        if savings_mastered > 0:
+            unlocked.append("💰 Savings Champion")
+
+        if tasks_done >= 3:
+            unlocked.append("🎯 Task Achiever")
+
+        if syl_done >= 3:
+            unlocked.append("📚 Syllabus Scholar")
+
+        if self.pomo_sessions >= 1:
+            unlocked.append("⏱️ Focus Beast")
+
+        if not unlocked:
+            unlocked = ["🌱 Fresher Rookie"]
+
+        if hasattr(self, 'lbl_badges'):
+            self.lbl_badges.setText(" • ".join(unlocked))
 
     # REFRESH NOTES TABLE
     def refresh_notes_table(self):
@@ -1703,7 +2066,7 @@ class StuntMainWindow(QMainWindow):
             db.delete_syllabus(sid)
             self.refresh_all_views()
 
-    # FORMATTED PDF REPORT EXPORTER
+    # FORMATTED PDF / HTML REPORT EXPORTER
     def export_pdf_report(self):
         file_path, _ = QFileDialog.getSaveFileName(self, "Export Academic & Financial Report", "STUNT_Academic_Report.html", "HTML Document (*.html);;All Files (*)")
         if file_path:
@@ -1715,51 +2078,183 @@ class StuntMainWindow(QMainWindow):
             total_creds = sum(g['credits'] for g in grades)
             cgpa = (total_pts / total_creds) if total_creds > 0 else 0.00
 
-            html = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body {{ font-family: Arial, sans-serif; background: #0a0b10; color: #f8fafc; padding: 40px; }}
-                    h1 {{ color: #6366f1; border-bottom: 2px solid #6366f1; padding-bottom: 10px; }}
-                    .card {{ background: #181a27; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }}
-                    table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-                    th, td {{ border: 1px solid rgba(255,255,255,0.1); padding: 10px; text-align: left; }}
-                    th {{ background: #121420; color: #0ea5e9; }}
-                </style>
-            </head>
-            <body>
-                <h1>STUNT Academic & Financial Transcript</h1>
-                <div class="card">
-                    <h2>Student Profile</h2>
-                    <p><b>Name:</b> {p.get('name')} | <b>College:</b> {p.get('college')}</p>
-                    <p><b>Course:</b> {p.get('course')} | <b>Batch:</b> {p.get('batch')}</p>
-                    <p><b>Cumulative CGPA:</b> {cgpa:.2f} | <b>Target CGPA:</b> {p.get('targetCgpa')}</p>
-                    <p><b>Net Wallet Balance:</b> ₹{inc - exp:,.0f} | <b>Monthly Budget Cap:</b> ₹{p.get('monthlyBudgetCap'):,.0f}</p>
-                    <p><b>Copyright Notice:</b> © 2026 Akul. All Rights Reserved.</p>
-                </div>
+            logs = self.data.get('attendanceLogs', [])
+            p_count = sum(1 for l in logs if l['status'] == 'Present')
+            att_pct = (p_count / len(logs) * 100.0) if logs else 0.0
 
-                <div class="card">
-                    <h2>Subject Grades Ledger</h2>
-                    <table>
-                        <tr><th>Semester</th><th>Code</th><th>Subject Name</th><th>Credits</th><th>Grade Points</th></tr>
-                        {''.join(f"<tr><td>Sem {g['sem']}</td><td>{g['subjectCode']}</td><td>{g['subjectName']}</td><td>{g['credits']}</td><td>{g['gradePoints']}</td></tr>" for g in grades)}
-                    </table>
-                </div>
+            tasks = self.data.get('tasks', [])
+            done_tasks = sum(1 for t in tasks if t['status'] == 'Completed')
+            syl = self.data.get('syllabus', [])
+            done_syl = sum(1 for s in syl if s['status'] == 'Completed')
 
-                <div class="card">
-                    <h2>Targeted Savings Goals</h2>
-                    <table>
-                        <tr><th>Goal Item</th><th>Category</th><th>Target Amount</th><th>Current Saved</th><th>Target Date</th></tr>
-                        {''.join(f"<tr><td>{sg['title']}</td><td>{sg['category']}</td><td>₹{sg['targetAmount']:,.0f}</td><td>₹{sg['currentSaved']:,.0f}</td><td>{sg['targetDate']}</td></tr>" for sg in self.data.get('savingsGoals', []))}
-                    </table>
-                </div>
-            </body>
-            </html>
-            """
+            html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>STUNT Official Academic & Financial Transcript</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #0a0b10;
+            color: #f8fafc;
+            padding: 36px;
+            margin: 0;
+            line-height: 1.5;
+        }}
+        .header-bar {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #6366f1;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }}
+        h1 {{ margin: 0; color: #6366f1; font-size: 26px; }}
+        .badge-pill {{
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+        }}
+        .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }}
+        .card {{
+            background: #141622;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }}
+        .card h2 {{
+            margin-top: 0;
+            font-size: 16px;
+            color: #0ea5e9;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 8px;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }}
+        th, td {{
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 8px 12px;
+            text-align: left;
+        }}
+        th {{
+            background: #1e2235;
+            color: #93c5fd;
+            font-weight: 600;
+        }}
+        tr:nth-child(even) {{ background: rgba(255,255,255,0.02); }}
+        .highlight {{ color: #10b981; font-weight: bold; }}
+        .danger {{ color: #f43f5e; font-weight: bold; }}
+        .footer {{
+            margin-top: 36px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #64748b;
+        }}
+        @media print {{
+            body {{
+                background-color: #ffffff !important;
+                color: #0f172a !important;
+                padding: 15mm !important;
+            }}
+            .card {{
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: none !important;
+            }}
+            th {{
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
+            }}
+            td {{
+                border: 1px solid #cbd5e1 !important;
+                color: #334155 !important;
+            }}
+            .header-bar {{
+                border-bottom: 2px solid #334155 !important;
+            }}
+            h1 {{ color: #0f172a !important; }}
+            .card h2 {{ color: #1e293b !important; border-bottom: 1px solid #cbd5e1 !important; }}
+            .highlight {{ color: #059669 !important; }}
+            .danger {{ color: #dc2626 !important; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <div>
+            <h1>STUNT — Academic & Financial Degree Transcript</h1>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Student Tracker for Unified Navigation & Tasks</div>
+        </div>
+        <div class="badge-pill">OFFICIAL STUDENT RECORD</div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <h2>🎓 Student Academic Profile</h2>
+            <p><b>Name:</b> {p.get('name')}</p>
+            <p><b>College / University:</b> {p.get('college')}</p>
+            <p><b>Degree & Course:</b> {p.get('course')} ({p.get('batch')})</p>
+            <p><b>Journey Timeline:</b> {p.get('startDate')} to {p.get('endDate')} ({p.get('totalSemesters')} Semesters)</p>
+        </div>
+
+        <div class="card">
+            <h2>📊 Performance & Metrics Summary</h2>
+            <p><b>Cumulative CGPA:</b> <span class="highlight">{cgpa:.2f} / 10.0</span> (Target: {p.get('targetCgpa')})</p>
+            <p><b>Overall Attendance:</b> <span class="{'highlight' if att_pct >= p.get('targetAttendancePct', 75.0) else 'danger'}">{att_pct:.1f}%</span> (Min: {p.get('targetAttendancePct', 75.0)}%)</p>
+            <p><b>Syllabus Units Completed:</b> {done_syl} / {len(syl)} units ({(done_syl/len(syl)*100 if syl else 0):.0f}%)</p>
+            <p><b>Net Wallet Balance:</b> <span class="highlight">₹{inc - exp:,.0f}</span> (Cap: ₹{p.get('monthlyBudgetCap'):,.0f})</p>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 24px;">
+        <h2>📜 Subject Grades & SGPA Ledger</h2>
+        <table>
+            <tr><th>Semester</th><th>Code</th><th>Subject Name</th><th>Credits</th><th>Grade Points</th></tr>
+            {''.join(f"<tr><td>Sem {g['sem']}</td><td>{g['subjectCode']}</td><td>{g['subjectName']}</td><td>{g['credits']}</td><td>{g['gradePoints']}</td></tr>" for g in grades) if grades else "<tr><td colspan='5'>No grades logged yet.</td></tr>"}
+        </table>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <h2>🎯 Targeted Savings Goals</h2>
+            <table>
+                <tr><th>Goal</th><th>Target</th><th>Saved</th><th>Status</th></tr>
+                {''.join(f"<tr><td>{sg['title']}</td><td>₹{sg['targetAmount']:,.0f}</td><td>₹{sg['currentSaved']:,.0f}</td><td>{min(100.0, sg['currentSaved']/max(1.0, sg['targetAmount'])*100):.0f}%</td></tr>" for sg in self.data.get('savingsGoals', [])) if self.data.get('savingsGoals') else "<tr><td colspan='4'>No savings goals logged.</td></tr>"}
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>✅ Academic Goals & Tasks Overview</h2>
+            <p>Total Tasks Logged: <b>{len(tasks)}</b> | Completed: <b class="highlight">{done_tasks}</b></p>
+            <table>
+                <tr><th>Task</th><th>Due Date</th><th>Priority</th><th>Status</th></tr>
+                {''.join(f"<tr><td>{t['title']}</td><td>{t['dueDate']}</td><td>{t['priority']}</td><td>{t['status']}</td></tr>" for t in tasks[:6]) if tasks else "<tr><td colspan='4'>No tasks logged.</td></tr>"}
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Generated via STUNT Desktop Platform • Report Date: {datetime.now().strftime("%Y-%m-%d %H:%M")}</div>
+        <div>© 2026 Akul. All Rights Reserved.</div>
+    </div>
+</body>
+</html>
+"""
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(html)
-            QMessageBox.information(self, "Export Complete", f"Academic Transcript exported to {file_path}!\nYou can open and print it directly from your web browser.")
+            QMessageBox.information(self, "Export Complete", f"Academic Transcript exported to {file_path}!\nYou can open and print it (Ctrl+P) directly from your web browser.")
 
     # TARGETED SAVINGS GOALS CARDS RENDERER
     def refresh_savings_goals_cards(self):
@@ -2070,12 +2565,16 @@ class StuntMainWindow(QMainWindow):
             db.delete_finance(fid)
             self.refresh_all_views()
 
-    # TIMETABLE TABLE
+    # TIMETABLE TABLE (with Multi-Semester Filter)
     def refresh_timetable_table(self):
         tt = self.data['timetable']
+        filter_sem = self.tt_sem_filter.currentData() if hasattr(self, 'tt_sem_filter') else 0
+        if filter_sem > 0:
+            tt = [t for t in tt if t.get('sem', 1) == filter_sem]
+
         self.tt_table.setRowCount(len(tt))
         for row, t in enumerate(tt):
-            self.tt_table.setItem(row, 0, QTableWidgetItem(t['day']))
+            self.tt_table.setItem(row, 0, QTableWidgetItem(f"{t['day']} (Sem {t.get('sem', 1)})"))
             self.tt_table.setItem(row, 1, QTableWidgetItem(f"{t['start']} - {t['end']}"))
             self.tt_table.setItem(row, 2, QTableWidgetItem(t['subject']))
             self.tt_table.setItem(row, 3, QTableWidgetItem(t['location']))
@@ -2102,16 +2601,64 @@ class StuntMainWindow(QMainWindow):
     def refresh_memories_grid(self):
         self.mem_list.clear()
         for m in self.data['memories']:
-            item = QListWidgetItem(m['title'])
+            item = QListWidgetItem(f"{m['title']}\n({m['date']})")
+            item.setData(Qt.ItemDataRole.UserRole, m)
             if m['src'].startswith('data:image'):
-                header, encoded = m['src'].split(",", 1)
-                data = base64.b64decode(encoded)
-                img = QImage()
-                img.loadFromData(data)
-                item.setIcon(QIcon(QPixmap.fromImage(img)))
+                try:
+                    header, encoded = m['src'].split(",", 1)
+                    data = base64.b64decode(encoded)
+                    img = QImage()
+                    img.loadFromData(data)
+                    item.setIcon(QIcon(QPixmap.fromImage(img)))
+                except Exception:
+                    pass
             elif os.path.exists(m['src']):
                 item.setIcon(QIcon(m['src']))
             self.mem_list.addItem(item)
+
+    def view_memory_dialog(self, item):
+        m = item.data(Qt.ItemDataRole.UserRole)
+        if not m:
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Campus Memory: {m.get('title')}")
+        dlg.setFixedSize(620, 520)
+        lay = QVBoxLayout(dlg)
+
+        img_lbl = QLabel(dlg)
+        img_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        if m['src'].startswith('data:image'):
+            try:
+                header, encoded = m['src'].split(",", 1)
+                data = base64.b64decode(encoded)
+                pix = QPixmap()
+                pix.loadFromData(data)
+                img_lbl.setPixmap(pix.scaled(580, 420, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            except Exception:
+                img_lbl.setText("Unable to render image preview")
+        elif os.path.exists(m['src']):
+            pix = QPixmap(m['src'])
+            img_lbl.setPixmap(pix.scaled(580, 420, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        else:
+            img_lbl.setText("Image file not found")
+        lay.addWidget(img_lbl)
+
+        meta_lay = QHBoxLayout()
+        meta_lay.addWidget(QLabel(f"<b>{m.get('title')}</b> • {m.get('date')} ({m.get('tag', 'Campus')})", dlg))
+        meta_lay.addStretch()
+
+        btn_del = QPushButton("Delete Memory 🗑️", dlg)
+        btn_del.setProperty("class", "danger")
+        def delete_this():
+            if QMessageBox.question(dlg, "Delete Memory", f"Delete memory '{m.get('title')}'?") == QMessageBox.StandardButton.Yes:
+                db.delete_memory(m['id'])
+                dlg.accept()
+                self.refresh_all_views()
+        btn_del.clicked.connect(delete_this)
+        meta_lay.addWidget(btn_del)
+        lay.addLayout(meta_lay)
+
+        dlg.exec()
 
     # MILESTONES TABLE
     def refresh_milestones_table(self):
@@ -2377,6 +2924,13 @@ class StuntMainWindow(QMainWindow):
         dlg = QDialog(self); dlg.setWindowTitle("Edit Class Slot" if edit_item else "Add Class Slot"); dlg.setFixedWidth(360)
         lay = QVBoxLayout(dlg)
 
+        sem_combo = QComboBox(dlg)
+        for i in range(1, 11):
+            sem_combo.addItem(f"Semester {i}", i)
+        if edit_item:
+            s_idx = sem_combo.findData(edit_item.get('sem', 1))
+            if s_idx != -1: sem_combo.setCurrentIndex(s_idx)
+
         day_combo = QComboBox(dlg); day_combo.addItems(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"])
         if edit_item:
             d_idx = day_combo.findText(edit_item['day'])
@@ -2388,6 +2942,7 @@ class StuntMainWindow(QMainWindow):
         loc_in = QLineEdit(dlg); loc_in.setText(edit_item['location'] if edit_item else "")
         inst_in = QLineEdit(dlg); inst_in.setText(edit_item['instructor'] if edit_item else "")
 
+        lay.addWidget(QLabel("Semester:", dlg)); lay.addWidget(sem_combo)
         lay.addWidget(QLabel("Day:", dlg)); lay.addWidget(day_combo)
         lay.addWidget(QLabel("Subject:", dlg)); lay.addWidget(sub_in)
         lay.addWidget(QLabel("Start Time:", dlg)); lay.addWidget(start_in)
@@ -2402,7 +2957,7 @@ class StuntMainWindow(QMainWindow):
             if sub_in.text():
                 db.save_timetable({
                     'id': edit_item['id'] if edit_item else f"tt-{int(datetime.now().timestamp())}",
-                    'sem': 1,
+                    'sem': sem_combo.currentData() or 1,
                     'day': day_combo.currentText(),
                     'subject': sub_in.text(),
                     'start': start_in.text(),
