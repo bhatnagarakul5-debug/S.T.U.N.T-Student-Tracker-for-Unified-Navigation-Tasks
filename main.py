@@ -57,16 +57,64 @@ def parse_time_to_minutes(time_str: str):
 
 THEMES = {
     "Glitchcore Dark": {
-        "bg": "#0a0b10", "card": "#181a27", "primary": "#6366f1", "secondary": "#0ea5e9", "accent": "#10b981", "danger": "#f43f5e"
+        "bg": "#090a12",
+        "surface": "#111424",
+        "card": "#16192d",
+        "card_hover": "#1e223c",
+        "primary": "#6366f1",
+        "secondary": "#0ea5e9",
+        "accent": "#10b981",
+        "danger": "#f43f5e",
+        "warning": "#f59e0b",
+        "border": "rgba(255, 255, 255, 0.08)",
+        "glow": "rgba(99, 102, 241, 0.35)",
+        "text": "#f8fafc",
+        "text_muted": "#94a3b8"
     },
     "Midnight Cyberpunk": {
-        "bg": "#0d0914", "card": "#1c122c", "primary": "#ec4899", "secondary": "#a855f7", "accent": "#06b6d4", "danger": "#ff0055"
+        "bg": "#090614",
+        "surface": "#120d26",
+        "card": "#1b1333",
+        "card_hover": "#251b45",
+        "primary": "#ec4899",
+        "secondary": "#a855f7",
+        "accent": "#06b6d4",
+        "danger": "#ff0055",
+        "warning": "#fbbf24",
+        "border": "rgba(236, 72, 153, 0.18)",
+        "glow": "rgba(236, 72, 153, 0.4)",
+        "text": "#fdf4ff",
+        "text_muted": "#c084fc"
     },
     "Emerald Tech": {
-        "bg": "#06140e", "card": "#0f291e", "primary": "#10b981", "secondary": "#06b6d4", "accent": "#f59e0b", "danger": "#ef4444"
+        "bg": "#04110a",
+        "surface": "#091e13",
+        "card": "#0d2b1b",
+        "card_hover": "#133a26",
+        "primary": "#10b981",
+        "secondary": "#06b6d4",
+        "accent": "#f59e0b",
+        "danger": "#ef4444",
+        "warning": "#fbbf24",
+        "border": "rgba(16, 185, 129, 0.18)",
+        "glow": "rgba(16, 185, 129, 0.4)",
+        "text": "#f0fdf4",
+        "text_muted": "#6ee7b7"
     },
     "Solar Amber": {
-        "bg": "#140e06", "card": "#291b0f", "primary": "#f59e0b", "secondary": "#f97316", "accent": "#10b981", "danger": "#ef4444"
+        "bg": "#120c04",
+        "surface": "#1f1508",
+        "card": "#2a1c0b",
+        "card_hover": "#3a2710",
+        "primary": "#f59e0b",
+        "secondary": "#f97316",
+        "accent": "#10b981",
+        "danger": "#ef4444",
+        "warning": "#fbbf24",
+        "border": "rgba(245, 158, 11, 0.18)",
+        "glow": "rgba(245, 158, 11, 0.4)",
+        "text": "#fffbeb",
+        "text_muted": "#fcd34d"
     }
 }
 
@@ -75,57 +123,79 @@ def generate_qss(theme_name="Glitchcore Dark"):
     return f"""
 QMainWindow, QDialog {{
     background-color: {t['bg']};
-    color: #f8fafc;
-    font-family: 'Segoe UI', Inter, sans-serif;
+    color: {t['text']};
+    font-family: 'Segoe UI Variable Text', 'Segoe UI', Inter, -apple-system, sans-serif;
 }}
 
 QWidget {{
-    color: #cbd5e1;
+    color: {t.get('text_muted', '#94a3b8')};
     font-size: 13px;
 }}
 
+/* Surface Cards & Containers */
 QFrame.card {{
     background-color: {t['card']};
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
+    border: 1px solid {t['border']};
+    border-radius: 12px;
     padding: 16px;
 }}
 
+QFrame.card:hover {{
+    border-color: rgba(255, 255, 255, 0.14);
+}}
+
 QFrame.hero-card {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(99, 102, 241, 0.15), stop:1 rgba(14, 165, 233, 0.05));
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(99, 102, 241, 0.22), stop:0.5 rgba(14, 165, 233, 0.12), stop:1 rgba(16, 185, 129, 0.08));
     border: 1px solid {t['primary']};
+    border-radius: 14px;
+    padding: 18px;
+}}
+
+QFrame.kpi-card {{
+    background-color: {t['card']};
+    border: 1px solid {t['border']};
+    border-top: 3px solid {t['primary']};
     border-radius: 12px;
+    padding: 16px;
+}}
+
+QFrame.kpi-card:hover {{
+    background-color: {t.get('card_hover', '#1e223c')};
+    border-color: {t['primary']};
 }}
 
 QFrame.dock {{
-    background-color: #08090d;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: #06070b;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
 }}
 
 QFrame.sidebar {{
-    background-color: {t['card']};
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: {t['surface']};
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
 }}
 
 QFrame.drawer {{
-    background-color: {t['card']};
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: {t['surface']};
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
 }}
 
+/* Typography */
 QLabel {{
-    color: #cbd5e1;
+    color: {t.get('text_muted', '#94a3b8')};
 }}
 
 QLabel.h1 {{
     font-size: 22px;
-    font-weight: bold;
+    font-weight: 800;
     color: #ffffff;
+    letter-spacing: -0.3px;
 }}
 
 QLabel.h2 {{
     font-size: 17px;
-    font-weight: 600;
+    font-weight: 700;
     color: #ffffff;
+    letter-spacing: -0.2px;
 }}
 
 QLabel.h3 {{
@@ -135,106 +205,232 @@ QLabel.h3 {{
 }}
 
 QLabel.kpi-val {{
-    font-size: 24px;
-    font-weight: bold;
+    font-size: 26px;
+    font-weight: 800;
     color: #ffffff;
+    letter-spacing: -0.5px;
 }}
 
-QPushButton {{
-    background-color: {t['card']};
-    color: #f8fafc;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 8px 16px;
+QLabel.kpi-sub {{
+    font-size: 11px;
+    color: #64748b;
     font-weight: 500;
 }}
 
+QLabel.badge {{
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: bold;
+}}
+
+/* Buttons */
+QPushButton {{
+    background-color: {t['card']};
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+}}
+
 QPushButton:hover {{
-    background-color: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.2);
+    background-color: {t.get('card_hover', '#1e223c')};
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}}
+
+QPushButton:pressed {{
+    background-color: rgba(0, 0, 0, 0.4);
 }}
 
 QPushButton.primary {{
-    background-color: {t['primary']};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {t['primary']}, stop:1 {t['secondary']});
     color: #ffffff;
-    border: 1px solid {t['primary']};
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
 }}
 
 QPushButton.primary:hover {{
-    background-color: {t['primary']};
-    opacity: 0.85;
+    opacity: 0.9;
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }}
 
 QPushButton.success {{
-    background-color: {t['accent']};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {t['accent']}, stop:1 #059669);
     color: #ffffff;
-    border: 1px solid {t['accent']};
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+}}
+
+QPushButton.success:hover {{
+    opacity: 0.9;
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }}
 
 QPushButton.danger {{
-    background-color: {t['danger']};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {t['danger']}, stop:1 #e11d48);
     color: #ffffff;
-    border: 1px solid {t['danger']};
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+}}
+
+QPushButton.danger:hover {{
+    opacity: 0.9;
+}}
+
+QPushButton.jarvis-btn {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #8b5cf6, stop:1 #06b6d4);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 7px 14px;
+}}
+
+QPushButton.jarvis-btn:hover {{
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }}
 
 QPushButton.icon-btn {{
     background: transparent;
     border: none;
     padding: 6px;
+    border-radius: 6px;
 }}
 
 QPushButton.icon-btn:hover {{
     background-color: rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
 }}
 
-QLineEdit, QComboBox, QTextEdit {{
-    background-color: #10121d;
-    color: #ffffff;
+QPushButton.pill-tab {{
+    background: #141724;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: 8px;
+    padding: 6px 14px;
+    color: #cbd5e1;
+    font-weight: bold;
+}}
+
+QPushButton.pill-tab:hover {{
+    border-color: {t['primary']};
+    color: #ffffff;
+}}
+
+/* Form Controls */
+QLineEdit, QComboBox, QTextEdit {{
+    background-color: #0b0d16;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
     padding: 8px 12px;
 }}
 
 QLineEdit:focus, QComboBox:focus, QTextEdit:focus {{
-    border-color: {t['primary']};
+    border: 1px solid {t['primary']};
+    background-color: #101322;
 }}
 
+QComboBox::drop-down {{
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 26px;
+    border-left: none;
+}}
+
+QComboBox QAbstractItemView {{
+    background-color: #121526;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    selection-background-color: {t['primary']};
+    selection-color: #ffffff;
+    padding: 4px;
+}}
+
+/* Progress Bars */
 QProgressBar {{
-    background-color: rgba(0, 0, 0, 0.4);
-    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.45);
+    border-radius: 6px;
     text-align: center;
     color: transparent;
 }}
 
 QProgressBar::chunk {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {t['primary']}, stop:1 {t['secondary']});
-    border-radius: 4px;
+    border-radius: 6px;
 }}
 
+/* Tables */
 QTableWidget {{
     background-color: {t['card']};
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid {t['border']};
     gridline-color: rgba(255, 255, 255, 0.04);
-    border-radius: 8px;
+    border-radius: 10px;
+    alternate-background-color: rgba(255, 255, 255, 0.02);
 }}
 
 QHeaderView::section {{
-    background-color: #10121d;
-    color: #64748b;
-    padding: 10px;
+    background-color: #0c0e18;
+    color: #94a3b8;
+    padding: 11px 12px;
     border: none;
-    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-weight: 700;
     font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }}
 
 QTableWidget::item {{
-    padding: 10px;
+    padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }}
 
+QTableWidget::item:selected {{
+    background-color: rgba(99, 102, 241, 0.22);
+    color: #ffffff;
+}}
+
+/* Tabs */
+QTabWidget::pane {{
+    border: 1px solid {t['border']};
+    border-radius: 8px;
+    background-color: {t['card']};
+}}
+
+QTabBar::tab {{
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none;
+    padding: 8px 18px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-right: 2px;
+}}
+
+QTabBar::tab:selected {{
+    background: {t['card']};
+    color: #ffffff;
+    border-top: 2px solid {t['primary']};
+}}
+
+QTabBar::tab:hover:!selected {{
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}}
+
+/* Splitters */
 QSplitter::handle {{
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
 }}
 
@@ -252,24 +448,52 @@ QSplitter::handle:horizontal {{
     margin: 0px 2px;
 }}
 
+/* Scroll Areas and Ultra-Thin Scrollbars */
 QScrollArea {{
     background: transparent;
     border: none;
 }}
 
 QScrollBar:vertical {{
-    background: #08090d;
-    width: 10px;
-    border-radius: 5px;
+    background: transparent;
+    width: 6px;
+    margin: 0px;
 }}
 
 QScrollBar::handle:vertical {{
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 5px;
+    min-height: 24px;
+    border-radius: 3px;
 }}
 
 QScrollBar::handle:vertical:hover {{
     background: {t['primary']};
+}}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+    height: 0px;
+    background: none;
+}}
+
+QScrollBar:horizontal {{
+    background: transparent;
+    height: 6px;
+    margin: 0px;
+}}
+
+QScrollBar::handle:horizontal {{
+    background: rgba(255, 255, 255, 0.2);
+    min-width: 24px;
+    border-radius: 3px;
+}}
+
+QScrollBar::handle:horizontal:hover {{
+    background: {t['primary']};
+}}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+    width: 0px;
+    background: none;
 }}
 """
 
@@ -1020,7 +1244,7 @@ class JarvisWingmanDialog(QDialog):
             else:
                 sub_id = sub_obj['id']
 
-            att_id = f"att-{int(now_dt.timestamp())}"
+            att_id = f"att-{int(now_dt.timestamp() * 1000)}-{os.urandom(3).hex()}"
             db.save_attendance({
                 'id': att_id,
                 'sem': sub_obj.get('sem', 1),
@@ -1193,6 +1417,11 @@ class StuntMainWindow(QMainWindow):
         self.pomo_timer = QTimer(self)
         self.pomo_timer.timeout.connect(self.pomo_tick)
 
+        # Real-time Live Clock Timer (updates topbar clock every 1000ms)
+        self.clock_timer = QTimer(self)
+        self.clock_timer.timeout.connect(self.update_live_clock)
+        self.clock_timer.start(1000)
+
         # Smart Lecture Alarm - deduplicated per class per day
         self.notified_lecture_alarms = set()
         self.alarm_timer = QTimer(self)
@@ -1201,6 +1430,13 @@ class StuntMainWindow(QMainWindow):
 
         self.active_sem = 1
         self.init_ui()
+
+    def update_live_clock(self):
+        if hasattr(self, 'lbl_clock') and self.lbl_clock:
+            now_dt = datetime.now()
+            self.lbl_clock.setText(now_dt.strftime("%I:%M:%S %p • %a, %b %d"))
+        if hasattr(self, 'lbl_dash_today_date') and self.lbl_dash_today_date:
+            self.lbl_dash_today_date.setText(datetime.now().strftime("%A, %B %d, %Y"))
 
     def send_notification(self, title, message):
         if self.tray_icon.isSystemTrayAvailable():
@@ -1225,6 +1461,21 @@ class StuntMainWindow(QMainWindow):
     def apply_theme(self):
         theme_name = self.profile.get('themeName', 'Glitchcore Dark')
         self.setStyleSheet(generate_qss(theme_name))
+        if hasattr(self, 'combo_theme_quick') and self.combo_theme_quick:
+            idx = self.combo_theme_quick.findData(theme_name)
+            if idx >= 0 and self.combo_theme_quick.currentIndex() != idx:
+                self.combo_theme_quick.blockSignals(True)
+                self.combo_theme_quick.setCurrentIndex(idx)
+                self.combo_theme_quick.blockSignals(False)
+
+    def on_quick_theme_change(self, idx):
+        if not hasattr(self, 'combo_theme_quick'):
+            return
+        theme_name = self.combo_theme_quick.currentData()
+        if theme_name and theme_name != self.profile.get('themeName'):
+            self.profile['themeName'] = theme_name
+            db.save_profile(self.profile)
+            self.apply_theme()
 
     def init_ui(self):
         self.apply_theme()
@@ -1234,11 +1485,11 @@ class StuntMainWindow(QMainWindow):
 
         # 1. Left Dock
         dock = QFrame(self); dock.setProperty("class", "dock"); dock.setFixedWidth(64)
-        dock_layout = QVBoxLayout(dock); dock_layout.setContentsMargins(10, 16, 10, 16); dock_layout.setSpacing(12)
+        dock_layout = QVBoxLayout(dock); dock_layout.setContentsMargins(10, 16, 10, 16); dock_layout.setSpacing(10)
 
         logo_lbl = QLabel(self)
         pix = QPixmap(os.path.join(os.path.dirname(__file__), 'assets', 'RedandBlackGlitchcoreStuntLogo.png'))
-        if not pix.isNull(): logo_lbl.setPixmap(pix.scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        if not pix.isNull(): logo_lbl.setPixmap(pix.scaled(36, 36, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         dock_layout.addWidget(logo_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
 
         nav_items = [
@@ -1255,7 +1506,8 @@ class StuntMainWindow(QMainWindow):
 
         self.nav_btns = []
         for idx, (title, icon) in enumerate(nav_items):
-            btn = QPushButton(icon, self); btn.setToolTip(title); btn.setFixedSize(44, 44)
+            btn = QPushButton(icon, self); btn.setToolTip(f"{title} (Ctrl+{idx+1})"); btn.setFixedSize(44, 44)
+            btn.setStyleSheet("background: #16192d; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-size: 16px;")
             btn.clicked.connect(lambda checked, i=idx: self.switch_view(i))
             dock_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
             self.nav_btns.append(btn)
@@ -1263,78 +1515,184 @@ class StuntMainWindow(QMainWindow):
         dock_layout.addStretch()
 
         settings_btn = QPushButton("⚙️", self); settings_btn.setToolTip("Settings & Backup"); settings_btn.setFixedSize(44, 44)
+        settings_btn.setStyleSheet("background: #16192d; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-size: 16px;")
         settings_btn.clicked.connect(self.open_settings_dialog)
         dock_layout.addWidget(settings_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         main_layout.addWidget(dock)
 
         # 2. Sub-Sidebar Navigation
-        self.sidebar = QFrame(self); self.sidebar.setProperty("class", "sidebar"); self.sidebar.setFixedWidth(240)
-        sidebar_layout = QVBoxLayout(self.sidebar); sidebar_layout.setContentsMargins(16, 16, 16, 16)
+        self.sidebar = QFrame(self); self.sidebar.setProperty("class", "sidebar"); self.sidebar.setFixedWidth(248)
+        sidebar_layout = QVBoxLayout(self.sidebar); sidebar_layout.setContentsMargins(16, 16, 16, 16); sidebar_layout.setSpacing(12)
 
-        side_title = QLabel("STUNT Platform", self); side_title.setProperty("class", "h2")
-        sidebar_layout.addWidget(side_title)
+        brand_box = QHBoxLayout()
+        lbl_brand = QLabel("⚡ STUNT OS", self)
+        lbl_brand.setStyleSheet("font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;")
+        lbl_badge = QLabel("PRO v2.5", self)
+        lbl_badge.setStyleSheet("background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: bold;")
+        brand_box.addWidget(lbl_brand)
+        brand_box.addWidget(lbl_badge)
+        brand_box.addStretch()
+        sidebar_layout.addLayout(brand_box)
 
-        side_sub = QLabel("Academic Degree Tracker", self); side_sub.setStyleSheet("color: #64748b; font-size: 11px;")
+        side_sub = QLabel("NMIMS Mumbai • Academic Degree OS", self)
+        side_sub.setStyleSheet("color: #64748b; font-size: 11px; margin-top: -6px;")
         sidebar_layout.addWidget(side_sub)
 
-        sidebar_layout.addSpacing(12)
-
-        self.channels_list = QListWidget(self); self.channels_list.setStyleSheet("background: transparent; border: none;")
-        sidebar_layout.addWidget(self.channels_list)
-
+        # Student Profile HUD Box
         self.prof_box = QFrame(self); self.prof_box.setProperty("class", "card")
-        prof_lay = QVBoxLayout(self.prof_box); prof_lay.setContentsMargins(10, 10, 10, 10)
+        self.prof_box.setStyleSheet("background: #16192d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px;")
+        prof_lay = QVBoxLayout(self.prof_box); prof_lay.setContentsMargins(10, 10, 10, 10); prof_lay.setSpacing(6)
 
-        self.lbl_prof_name = QLabel(self.profile['name'], self); self.lbl_prof_name.setStyleSheet("font-weight: bold; font-size: 14px; color: #ffffff;")
+        p_top = QHBoxLayout()
+        avatar_lbl = QLabel("AB", self.prof_box)
+        avatar_lbl.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6366f1, stop:1 #0ea5e9); color: #ffffff; font-weight: 800; font-size: 12px; border-radius: 14px; min-width: 28px; max-width: 28px; min-height: 28px; max-height: 28px;")
+        avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        p_top.addWidget(avatar_lbl)
+
+        p_name_col = QVBoxLayout(); p_name_col.setSpacing(1)
+        self.lbl_prof_name = QLabel(self.profile['name'], self); self.lbl_prof_name.setStyleSheet("font-weight: bold; font-size: 13px; color: #ffffff;")
         self.lbl_prof_course = QLabel(self.profile['course'], self); self.lbl_prof_course.setStyleSheet("font-size: 11px; color: #0ea5e9;")
+        p_name_col.addWidget(self.lbl_prof_name)
+        p_name_col.addWidget(self.lbl_prof_course)
+        p_top.addLayout(p_name_col)
+        p_top.addStretch()
+        prof_lay.addLayout(p_top)
+
         self.lbl_prof_college = QLabel(self.profile['college'], self); self.lbl_prof_college.setStyleSheet("font-size: 10px; color: #64748b;")
+        prof_lay.addWidget(self.lbl_prof_college)
 
-        btn_edit_prof = QPushButton("✏️ Edit Profile & Theme", self); btn_edit_prof.setStyleSheet("font-size: 11px; padding: 4px;")
+        self.prof_progress_mini = QProgressBar(self.prof_box)
+        self.prof_progress_mini.setFixedHeight(6)
+        self.prof_progress_mini.setValue(0)
+        prof_lay.addWidget(self.prof_progress_mini)
+
+        p_prog_row = QHBoxLayout()
+        self.lbl_prof_degree_pct = QLabel("Degree Track", self.prof_box)
+        self.lbl_prof_degree_pct.setStyleSheet("font-size: 10px; color: #94a3b8;")
+        lbl_status_pill = QLabel("🟢 SEM 1 ACTIVE", self.prof_box)
+        lbl_status_pill.setStyleSheet("font-size: 9px; font-weight: bold; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 1px 4px; border-radius: 4px;")
+        p_prog_row.addWidget(self.lbl_prof_degree_pct)
+        p_prog_row.addStretch()
+        p_prog_row.addWidget(lbl_status_pill)
+        prof_lay.addLayout(p_prog_row)
+
+        btn_edit_prof = QPushButton("✏️ Edit Profile & Themes", self)
+        btn_edit_prof.setStyleSheet("font-size: 11px; padding: 5px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #cbd5e1;")
         btn_edit_prof.clicked.connect(self.open_edit_profile_dialog)
-
-        prof_lay.addWidget(self.lbl_prof_name); prof_lay.addWidget(self.lbl_prof_course)
-        prof_lay.addWidget(self.lbl_prof_college); prof_lay.addWidget(btn_edit_prof)
+        prof_lay.addWidget(btn_edit_prof)
 
         sidebar_layout.addWidget(self.prof_box)
+
+        lbl_nav_hdr = QLabel("NAVIGATION CHANNELS", self)
+        lbl_nav_hdr.setStyleSheet("font-size: 10px; font-weight: bold; color: #64748b; letter-spacing: 0.5px; margin-top: 4px;")
+        sidebar_layout.addWidget(lbl_nav_hdr)
+
+        self.channels_list = QListWidget(self)
+        self.channels_list.setStyleSheet("background: transparent; border: none; color: #cbd5e1; font-size: 12px;")
+        sidebar_layout.addWidget(self.channels_list)
+
+        # Bottom JARVIS Wingman Card in Sidebar
+        self.card_jarvis_side = QFrame(self)
+        self.card_jarvis_side.setProperty("class", "card")
+        self.card_jarvis_side.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(99, 102, 241, 0.16), stop:1 rgba(14, 165, 233, 0.08)); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 10px; padding: 10px;")
+        cjs_lay = QVBoxLayout(self.card_jarvis_side)
+        cjs_lay.setContentsMargins(8, 8, 8, 8); cjs_lay.setSpacing(4)
+
+        cjs_hdr = QHBoxLayout()
+        lbl_j_status = QLabel("🟢 JARVIS ONLINE", self.card_jarvis_side)
+        lbl_j_status.setStyleSheet("color: #10b981; font-weight: bold; font-size: 11px;")
+        lbl_j_key = QLabel("Ctrl+J", self.card_jarvis_side)
+        lbl_j_key.setStyleSheet("background: rgba(255,255,255,0.1); color: #94a3b8; font-size: 10px; padding: 2px 5px; border-radius: 4px;")
+        cjs_hdr.addWidget(lbl_j_status)
+        cjs_hdr.addStretch()
+        cjs_hdr.addWidget(lbl_j_key)
+        cjs_lay.addLayout(cjs_hdr)
+
+        lbl_j_desc = QLabel("Academic AI Wingman ready to assist with timetable & attendance", self.card_jarvis_side)
+        lbl_j_desc.setStyleSheet("color: #94a3b8; font-size: 10px;")
+        lbl_j_desc.setWordWrap(True)
+        cjs_lay.addWidget(lbl_j_desc)
+
+        btn_j_side = QPushButton("Launch Wingman", self.card_jarvis_side)
+        btn_j_side.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366f1, stop:1 #0ea5e9); color: #ffffff; font-size: 11px; padding: 5px; border-radius: 6px; font-weight: bold; border: none;")
+        btn_j_side.clicked.connect(self.open_jarvis_wingman)
+        cjs_lay.addWidget(btn_j_side)
+
+        sidebar_layout.addWidget(self.card_jarvis_side)
         main_layout.addWidget(self.sidebar)
 
         # 3. Main Workspace Area
         workspace = QWidget(self)
         workspace_layout = QVBoxLayout(workspace); workspace_layout.setContentsMargins(0, 0, 0, 0); workspace_layout.setSpacing(0)
 
-        topbar = QFrame(self); topbar.setFixedHeight(56); topbar.setStyleSheet("background: #0f1019; border-bottom: 1px solid rgba(255,255,255,0.08);")
-        topbar_layout = QHBoxLayout(topbar); topbar_layout.setContentsMargins(16, 0, 16, 0)
+        # Topbar
+        topbar = QFrame(self); topbar.setFixedHeight(58)
+        topbar.setStyleSheet("background: #0d0f1a; border-bottom: 1px solid rgba(255,255,255,0.08);")
+        topbar_layout = QHBoxLayout(topbar); topbar_layout.setContentsMargins(16, 0, 16, 0); topbar_layout.setSpacing(10)
 
         self.btn_toggle_sidebar = QPushButton("☰", self); self.btn_toggle_sidebar.setProperty("class", "icon-btn"); self.btn_toggle_sidebar.clicked.connect(self.toggle_sidebar)
         topbar_layout.addWidget(self.btn_toggle_sidebar)
 
-        self.topbar_title = QLabel("Overview Dashboard", self); self.topbar_title.setProperty("class", "h2")
+        self.topbar_title = QLabel("⚡ STUNT OS  ›  Overview Dashboard", self)
+        self.topbar_title.setStyleSheet("font-size: 15px; font-weight: 700; color: #ffffff;")
         topbar_layout.addWidget(self.topbar_title)
+
+        # Real-time Live Clock Capsule
+        self.clock_capsule = QFrame(self)
+        self.clock_capsule.setStyleSheet("background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 2px 10px;")
+        cc_lay = QHBoxLayout(self.clock_capsule)
+        cc_lay.setContentsMargins(6, 2, 6, 2); cc_lay.setSpacing(6)
+        self.lbl_clock_dot = QLabel("●", self.clock_capsule)
+        self.lbl_clock_dot.setStyleSheet("color: #10b981; font-size: 10px;")
+        self.lbl_clock = QLabel(datetime.now().strftime("%I:%M:%S %p • %a, %b %d"), self.clock_capsule)
+        self.lbl_clock.setStyleSheet("color: #38bdf8; font-weight: 600; font-size: 11px;")
+        cc_lay.addWidget(self.lbl_clock_dot)
+        cc_lay.addWidget(self.lbl_clock)
+        topbar_layout.addWidget(self.clock_capsule)
 
         topbar_layout.addStretch()
 
-        btn_copy = QPushButton("© Copyright Notice", self); btn_copy.setStyleSheet("background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
+        # Quick Theme Switcher ComboBox
+        self.combo_theme_quick = QComboBox(self)
+        for t_name in THEMES.keys():
+            self.combo_theme_quick.addItem(f"🎨 {t_name}", t_name)
+        curr_theme = self.profile.get('themeName', 'Glitchcore Dark')
+        c_idx = self.combo_theme_quick.findData(curr_theme)
+        if c_idx >= 0: self.combo_theme_quick.setCurrentIndex(c_idx)
+        self.combo_theme_quick.setStyleSheet("font-size: 11px; padding: 4px 8px; border-radius: 6px; min-width: 140px;")
+        self.combo_theme_quick.currentIndexChanged.connect(self.on_quick_theme_change)
+        topbar_layout.addWidget(self.combo_theme_quick)
+
+        btn_copy = QPushButton("© Notice", self)
+        btn_copy.setStyleSheet("background: rgba(16, 185, 129, 0.12); border: 1px solid #10b981; color: #34d399; font-size: 11px; padding: 5px 10px; border-radius: 6px;")
         btn_copy.clicked.connect(self.open_copyright_dialog)
         topbar_layout.addWidget(btn_copy)
 
-        btn_exp_pdf = QPushButton("📄 Export Report", self); btn_exp_pdf.setProperty("class", "primary"); btn_exp_pdf.clicked.connect(self.export_pdf_report)
+        btn_exp_pdf = QPushButton("📄 PDF Report", self)
+        btn_exp_pdf.setProperty("class", "primary")
+        btn_exp_pdf.setStyleSheet("font-size: 11px; padding: 5px 12px;")
+        btn_exp_pdf.clicked.connect(self.export_pdf_report)
         topbar_layout.addWidget(btn_exp_pdf)
 
-        btn_add_savings = QPushButton("🎯 Savings Goal", self); btn_add_savings.setProperty("class", "success"); btn_add_savings.clicked.connect(self.open_savings_goal_dialog)
+        btn_add_savings = QPushButton("🎯 Savings", self)
+        btn_add_savings.setProperty("class", "success")
+        btn_add_savings.setStyleSheet("font-size: 11px; padding: 5px 12px;")
+        btn_add_savings.clicked.connect(self.open_savings_goal_dialog)
         topbar_layout.addWidget(btn_add_savings)
 
-        btn_add_grade = QPushButton("+ Log Grade", self); btn_add_grade.clicked.connect(lambda: self.open_grade_dialog())
-        topbar_layout.addWidget(btn_add_grade)
-
-        btn_add_task = QPushButton("+ Add Task", self); btn_add_task.clicked.connect(lambda: self.open_task_dialog())
+        btn_add_task = QPushButton("+ Task", self)
+        btn_add_task.setStyleSheet("font-size: 11px; padding: 5px 12px;")
+        btn_add_task.clicked.connect(lambda: self.open_task_dialog())
         topbar_layout.addWidget(btn_add_task)
 
-        btn_log_att = QPushButton("+ Log Attendance", self); btn_log_att.clicked.connect(lambda: self.open_attendance_dialog())
+        btn_log_att = QPushButton("+ Attendance", self)
+        btn_log_att.setStyleSheet("font-size: 11px; padding: 5px 12px;")
+        btn_log_att.clicked.connect(lambda: self.open_attendance_dialog())
         topbar_layout.addWidget(btn_log_att)
 
         btn_jarvis = QPushButton("🤖 JARVIS Wingman", self)
-        btn_jarvis.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366f1, stop:1 #0ea5e9); color: #ffffff; font-weight: bold; border-radius: 6px; padding: 6px 12px;")
+        btn_jarvis.setProperty("class", "jarvis-btn")
         btn_jarvis.clicked.connect(self.open_jarvis_wingman)
         topbar_layout.addWidget(btn_jarvis)
 
@@ -1360,11 +1718,10 @@ class StuntMainWindow(QMainWindow):
 
         # 4. Right Diagnostics Drawer with Gamified Badges
         self.drawer = QFrame(self); self.drawer.setProperty("class", "drawer"); self.drawer.setFixedWidth(240)
-        drawer_layout = QVBoxLayout(self.drawer); drawer_layout.setContentsMargins(16, 16, 16, 16)
+        drawer_layout = QVBoxLayout(self.drawer); drawer_layout.setContentsMargins(16, 16, 16, 16); drawer_layout.setSpacing(12)
 
         diag_hdr = QLabel("System Diagnostics", self); diag_hdr.setProperty("class", "h3")
         drawer_layout.addWidget(diag_hdr)
-        drawer_layout.addSpacing(10)
 
         card_student = QFrame(self); card_student.setProperty("class", "card")
         cs_lay = QVBoxLayout(card_student)
@@ -1411,7 +1768,7 @@ class StuntMainWindow(QMainWindow):
         drawer_layout.addStretch()
         main_layout.addWidget(self.drawer)
 
-        # Global Navigation Hotkeys (Ctrl+1 to Ctrl+9, Ctrl+T, Ctrl+A)
+        # Global Navigation Hotkeys (Ctrl+1 to Ctrl+9, Ctrl+T, Ctrl+A, Ctrl+J)
         for i in range(min(9, len(nav_items))):
             sc = QShortcut(QKeySequence(f"Ctrl+{i+1}"), self)
             sc.activated.connect(lambda checked=False, idx=i: self.switch_view(idx))
@@ -1453,12 +1810,18 @@ class StuntMainWindow(QMainWindow):
     def switch_view(self, index):
         self.views_stack.setCurrentIndex(index)
         for idx, btn in enumerate(self.nav_btns):
-            if idx == index: btn.setStyleSheet("background: #6366f1; color: #fff;")
-            else: btn.setStyleSheet("background: #181a27; color: #cbd5e1;")
+            if idx == index:
+                btn.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366f1, stop:1 #4f46e5); color: #ffffff; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); font-size: 16px;")
+            else:
+                btn.setStyleSheet("background: #16192d; color: #94a3b8; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); font-size: 16px;")
 
         self.channels_list.clear()
-        titles = ["Overview Dashboard", "CGPA & Grade Intelligence", "Exam Syllabus Matrix", "Task & Focus Pomodoro", "Attendance & Bunk Safety", "Finance & Targeted Savings", "Weekly Timetable", "Memories Vault", "Milestones Feed"]
-        self.topbar_title.setText(titles[index])
+        titles = [
+            "Overview Dashboard", "CGPA & Grade Intelligence", "Exam Syllabus Matrix",
+            "Task & Focus Pomodoro", "Attendance & Bunk Safety", "Finance & Targeted Savings",
+            "Weekly Timetable", "Memories Vault", "Milestones Feed"
+        ]
+        self.topbar_title.setText(f"⚡ STUNT OS  ›  {titles[index]}")
 
         if index == 0: self.channels_list.addItem("Summary Overview"); self.channels_list.addItem("5-Year Journey")
         elif index == 1: self.channels_list.addItem("Grades & SGPA Ledger"); self.channels_list.addItem("Target CGPA Predictor")
@@ -1470,7 +1833,7 @@ class StuntMainWindow(QMainWindow):
         elif index == 7: self.channels_list.addItem("Campus Photo Gallery")
         elif index == 8: self.channels_list.addItem("Milestone Timeline")
 
-    # 1. DASHBOARD VIEW (with Study Activity Heatmap Grid & ScrollArea)
+    # 1. DASHBOARD VIEW (Modernized with Live Lecture Tracker & Jump Studios)
     def init_dashboard_view(self):
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
@@ -1479,50 +1842,140 @@ class StuntMainWindow(QMainWindow):
         content = QWidget()
         lay = QVBoxLayout(content); lay.setContentsMargins(24, 24, 24, 24); lay.setSpacing(20)
 
+        # Hero Degree Journey Card
         hero = QFrame(self); hero.setProperty("class", "hero-card"); hero_lay = QVBoxLayout(hero)
-        self.lbl_journey_dates = QLabel("Academic Degree Journey", self); self.lbl_journey_dates.setProperty("class", "h2")
+        self.lbl_journey_dates = QLabel("🎓 Academic Degree Journey", self); self.lbl_journey_dates.setProperty("class", "h2")
         hero_lay.addWidget(self.lbl_journey_dates)
 
-        self.hero_progress = QProgressBar(self); self.hero_progress.setFixedHeight(10)
+        self.hero_progress = QProgressBar(self); self.hero_progress.setFixedHeight(12)
         hero_lay.addWidget(self.hero_progress)
 
         hero_met_lay = QHBoxLayout()
         self.lbl_days_elapsed = QLabel("0 Days Completed", self)
-        self.lbl_degree_pct = QLabel("0.0% Degree Completion", self); self.lbl_degree_pct.setStyleSheet("color: #0ea5e9; font-weight: bold;")
+        self.lbl_days_elapsed.setStyleSheet("color: #cbd5e1; font-weight: 600;")
+        self.lbl_degree_pct = QLabel("0.0% Degree Completion", self)
+        self.lbl_degree_pct.setStyleSheet("color: #38bdf8; font-weight: 800;")
         self.lbl_days_left = QLabel("0 Days Remaining", self)
+        self.lbl_days_left.setStyleSheet("color: #cbd5e1; font-weight: 600;")
 
         hero_met_lay.addWidget(self.lbl_days_elapsed); hero_met_lay.addWidget(self.lbl_degree_pct); hero_met_lay.addWidget(self.lbl_days_left)
         hero_lay.addLayout(hero_met_lay)
         lay.addWidget(hero)
 
-        kpi_lay = QHBoxLayout(); kpi_lay.setSpacing(16)
+        # 5 Elevated KPI Cards
+        kpi_lay = QHBoxLayout(); kpi_lay.setSpacing(14)
 
-        k1 = QFrame(self); k1.setProperty("class", "card"); k1_lay = QVBoxLayout(k1)
-        k1_lay.addWidget(QLabel("Overall CGPA", self))
-        self.kpi_cgpa_val = QLabel("0.00", self); self.kpi_cgpa_val.setProperty("class", "kpi-val"); self.kpi_cgpa_val.setStyleSheet("color: #6366f1;")
-        k1_lay.addWidget(self.kpi_cgpa_val); kpi_lay.addWidget(k1)
+        k1 = QFrame(self); k1.setProperty("class", "kpi-card"); k1.setStyleSheet("border-top: 3px solid #6366f1;"); k1_lay = QVBoxLayout(k1)
+        lbl_k1 = QLabel("OVERALL CGPA", self); lbl_k1.setProperty("class", "kpi-sub"); k1_lay.addWidget(lbl_k1)
+        self.kpi_cgpa_val = QLabel("0.00", self); self.kpi_cgpa_val.setProperty("class", "kpi-val"); self.kpi_cgpa_val.setStyleSheet("color: #818cf8;")
+        k1_lay.addWidget(self.kpi_cgpa_val)
+        lbl_k1_sub = QLabel("Target: 8.50 • Standing", self); lbl_k1_sub.setStyleSheet("font-size: 10px; color: #64748b;"); k1_lay.addWidget(lbl_k1_sub)
+        kpi_lay.addWidget(k1)
 
-        k2 = QFrame(self); k2.setProperty("class", "card"); k2_lay = QVBoxLayout(k2)
-        k2_lay.addWidget(QLabel("Overall Attendance", self))
-        self.kpi_att_val = QLabel("0.0%", self); self.kpi_att_val.setProperty("class", "kpi-val")
-        k2_lay.addWidget(self.kpi_att_val); kpi_lay.addWidget(k2)
+        k2 = QFrame(self); k2.setProperty("class", "kpi-card"); k2.setStyleSheet("border-top: 3px solid #10b981;"); k2_lay = QVBoxLayout(k2)
+        lbl_k2 = QLabel("ATTENDANCE RECORD", self); lbl_k2.setProperty("class", "kpi-sub"); k2_lay.addWidget(lbl_k2)
+        self.kpi_att_val = QLabel("0.0%", self); self.kpi_att_val.setProperty("class", "kpi-val"); self.kpi_att_val.setStyleSheet("color: #34d399;")
+        k2_lay.addWidget(self.kpi_att_val)
+        lbl_k2_sub = QLabel("Min 75% • Safe Margin", self); lbl_k2_sub.setStyleSheet("font-size: 10px; color: #64748b;"); k2_lay.addWidget(lbl_k2_sub)
+        kpi_lay.addWidget(k2)
 
-        k3 = QFrame(self); k3.setProperty("class", "card"); k3_lay = QVBoxLayout(k3)
-        k3_lay.addWidget(QLabel("Total Savings Accumulated", self))
-        self.kpi_savings_val = QLabel("₹0", self); self.kpi_savings_val.setProperty("class", "kpi-val"); self.kpi_savings_val.setStyleSheet("color: #10b981;")
-        k3_lay.addWidget(self.kpi_savings_val); kpi_lay.addWidget(k3)
+        k3 = QFrame(self); k3.setProperty("class", "kpi-card"); k3.setStyleSheet("border-top: 3px solid #0ea5e9;"); k3_lay = QVBoxLayout(k3)
+        lbl_k3 = QLabel("TARGETED SAVINGS", self); lbl_k3.setProperty("class", "kpi-sub"); k3_lay.addWidget(lbl_k3)
+        self.kpi_savings_val = QLabel("₹0", self); self.kpi_savings_val.setProperty("class", "kpi-val"); self.kpi_savings_val.setStyleSheet("color: #38bdf8;")
+        k3_lay.addWidget(self.kpi_savings_val)
+        lbl_k3_sub = QLabel("Accumulated in Goals", self); lbl_k3_sub.setStyleSheet("font-size: 10px; color: #64748b;"); k3_lay.addWidget(lbl_k3_sub)
+        kpi_lay.addWidget(k3)
 
-        k4 = QFrame(self); k4.setProperty("class", "card"); k4_lay = QVBoxLayout(k4)
-        k4_lay.addWidget(QLabel("Syllabus Completion", self))
-        self.kpi_syl_val = QLabel("0%", self); self.kpi_syl_val.setProperty("class", "kpi-val"); self.kpi_syl_val.setStyleSheet("color: #0ea5e9;")
-        k4_lay.addWidget(self.kpi_syl_val); kpi_lay.addWidget(k4)
+        k4 = QFrame(self); k4.setProperty("class", "kpi-card"); k4.setStyleSheet("border-top: 3px solid #a855f7;"); k4_lay = QVBoxLayout(k4)
+        lbl_k4 = QLabel("SYLLABUS COVERAGE", self); lbl_k4.setProperty("class", "kpi-sub"); k4_lay.addWidget(lbl_k4)
+        self.kpi_syl_val = QLabel("0%", self); self.kpi_syl_val.setProperty("class", "kpi-val"); self.kpi_syl_val.setStyleSheet("color: #c084fc;")
+        k4_lay.addWidget(self.kpi_syl_val)
+        lbl_k4_sub = QLabel("Units Completed", self); lbl_k4_sub.setStyleSheet("font-size: 10px; color: #64748b;"); k4_lay.addWidget(lbl_k4_sub)
+        kpi_lay.addWidget(k4)
 
-        k5 = QFrame(self); k5.setProperty("class", "card"); k5_lay = QVBoxLayout(k5)
-        k5_lay.addWidget(QLabel("Task Completion", self))
-        self.kpi_task_val = QLabel("0%", self); self.kpi_task_val.setProperty("class", "kpi-val"); self.kpi_task_val.setStyleSheet("color: #f59e0b;")
-        k5_lay.addWidget(self.kpi_task_val); kpi_lay.addWidget(k5)
+        k5 = QFrame(self); k5.setProperty("class", "kpi-card"); k5.setStyleSheet("border-top: 3px solid #f59e0b;"); k5_lay = QVBoxLayout(k5)
+        lbl_k5 = QLabel("TASK VELOCITY", self); lbl_k5.setProperty("class", "kpi-sub"); k5_lay.addWidget(lbl_k5)
+        self.kpi_task_val = QLabel("0%", self); self.kpi_task_val.setProperty("class", "kpi-val"); self.kpi_task_val.setStyleSheet("color: #fbbf24;")
+        k5_lay.addWidget(self.kpi_task_val)
+        lbl_k5_sub = QLabel("Focus Sprints Done", self); lbl_k5_sub.setStyleSheet("font-size: 10px; color: #64748b;"); k5_lay.addWidget(lbl_k5_sub)
+        kpi_lay.addWidget(k5)
 
         lay.addLayout(kpi_lay)
+
+        # Today's Live Lecture Schedule Card on Overview Dashboard
+        self.dash_sched_card = QFrame(self)
+        self.dash_sched_card.setProperty("class", "hero-card")
+        self.dash_sched_card.setStyleSheet("background: #121528; border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 12px; padding: 14px;")
+        dsc_lay = QVBoxLayout(self.dash_sched_card)
+        dsc_lay.setContentsMargins(16, 14, 16, 14); dsc_lay.setSpacing(10)
+
+        dsc_top = QHBoxLayout()
+        lbl_dsc_title = QLabel("📅 TODAY'S LECTURES & LIVE CLASS TRACKER", self.dash_sched_card)
+        lbl_dsc_title.setStyleSheet("font-size: 14px; font-weight: 700; color: #ffffff;")
+        self.lbl_dash_today_date = QLabel(datetime.now().strftime("%A, %B %d, %Y"), self.dash_sched_card)
+        self.lbl_dash_today_date.setStyleSheet("color: #38bdf8; font-weight: 600; font-size: 12px;")
+        dsc_top.addWidget(lbl_dsc_title)
+        dsc_top.addStretch()
+        dsc_top.addWidget(self.lbl_dash_today_date)
+        dsc_lay.addLayout(dsc_top)
+
+        self.dash_sched_content_lay = QVBoxLayout()
+        dsc_lay.addLayout(self.dash_sched_content_lay)
+        lay.addWidget(self.dash_sched_card)
+
+        # Quick Access Studio Jump Tiles
+        lbl_studios = QLabel("⚡ QUICK-ACCESS STUDIOS & TOOLS", self)
+        lbl_studios.setStyleSheet("font-size: 11px; font-weight: bold; color: #94a3b8; letter-spacing: 0.5px;")
+        lay.addWidget(lbl_studios)
+
+        studio_lay = QHBoxLayout()
+        studio_lay.setSpacing(14)
+
+        # Tile 1: Flashcard Studio
+        tile1 = QFrame(self); tile1.setProperty("class", "card")
+        tile1.setStyleSheet("background: #141727; border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 10px; padding: 12px;")
+        t1_lay = QVBoxLayout(tile1); t1_lay.setSpacing(6)
+        t1_hdr = QLabel("🗂️ Flashcard Studio", tile1); t1_hdr.setStyleSheet("font-weight: bold; font-size: 13px; color: #ffffff;")
+        t1_desc = QLabel("Active recall & mastery decks across all semesters", tile1); t1_desc.setStyleSheet("color: #94a3b8; font-size: 11px;"); t1_desc.setWordWrap(True)
+        btn_t1 = QPushButton("Review Cards", tile1); btn_t1.setStyleSheet("background: #6366f1; color: #fff; font-size: 11px; padding: 5px 8px; border-radius: 6px; font-weight: bold; border: none;")
+        btn_t1.clicked.connect(self.open_flashcards_modal)
+        t1_lay.addWidget(t1_hdr); t1_lay.addWidget(t1_desc); t1_lay.addStretch(); t1_lay.addWidget(btn_t1)
+        studio_lay.addWidget(tile1)
+
+        # Tile 2: Pomodoro Focus Sprint
+        tile2 = QFrame(self); tile2.setProperty("class", "card")
+        tile2.setStyleSheet("background: #141727; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 12px;")
+        t2_lay = QVBoxLayout(tile2); t2_lay.setSpacing(6)
+        t2_hdr = QLabel("⏱️ Focus Sprint", tile2); t2_hdr.setStyleSheet("font-weight: bold; font-size: 13px; color: #ffffff;")
+        t2_desc = QLabel("25m Pomodoro study intervals with ambient sound", tile2); t2_desc.setStyleSheet("color: #94a3b8; font-size: 11px;"); t2_desc.setWordWrap(True)
+        btn_t2 = QPushButton("Start Focus", tile2); btn_t2.setStyleSheet("background: #f59e0b; color: #fff; font-size: 11px; padding: 5px 8px; border-radius: 6px; font-weight: bold; border: none;")
+        btn_t2.clicked.connect(lambda: self.switch_view(3))
+        t2_lay.addWidget(t2_hdr); t2_lay.addWidget(t2_desc); t2_lay.addStretch(); t2_lay.addWidget(btn_t2)
+        studio_lay.addWidget(tile2)
+
+        # Tile 3: JARVIS Wingman
+        tile3 = QFrame(self); tile3.setProperty("class", "card")
+        tile3.setStyleSheet("background: #141727; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 10px; padding: 12px;")
+        t3_lay = QVBoxLayout(tile3); t3_lay.setSpacing(6)
+        t3_hdr = QLabel("🤖 JARVIS Wingman", tile3); t3_hdr.setStyleSheet("font-weight: bold; font-size: 13px; color: #ffffff;")
+        t3_desc = QLabel("Ask attendance bunks, timetables, and advice", tile3); t3_desc.setStyleSheet("color: #94a3b8; font-size: 11px;"); t3_desc.setWordWrap(True)
+        btn_t3 = QPushButton("Open AI Wingman", tile3); btn_t3.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #8b5cf6, stop:1 #06b6d4); color: #fff; font-size: 11px; padding: 5px 8px; border-radius: 6px; font-weight: bold; border: none;")
+        btn_t3.clicked.connect(self.open_jarvis_wingman)
+        t3_lay.addWidget(t3_hdr); t3_lay.addWidget(t3_desc); t3_lay.addStretch(); t3_lay.addWidget(btn_t3)
+        studio_lay.addWidget(tile3)
+
+        # Tile 4: Target CGPA Predictor
+        tile4 = QFrame(self); tile4.setProperty("class", "card")
+        tile4.setStyleSheet("background: #141727; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px;")
+        t4_lay = QVBoxLayout(tile4); t4_lay.setSpacing(6)
+        t4_hdr = QLabel("📈 CGPA Predictor", tile4); t4_hdr.setStyleSheet("font-weight: bold; font-size: 13px; color: #ffffff;")
+        t4_desc = QLabel("Simulate required SGPA to hit your target GPA", tile4); t4_desc.setStyleSheet("color: #94a3b8; font-size: 11px;"); t4_desc.setWordWrap(True)
+        btn_t4 = QPushButton("Simulate Grades", tile4); btn_t4.setStyleSheet("background: #10b981; color: #fff; font-size: 11px; padding: 5px 8px; border-radius: 6px; font-weight: bold; border: none;")
+        btn_t4.clicked.connect(lambda: self.switch_view(1))
+        t4_lay.addWidget(t4_hdr); t4_lay.addWidget(t4_desc); t4_lay.addStretch(); t4_lay.addWidget(btn_t4)
+        studio_lay.addWidget(tile4)
+
+        lay.addLayout(studio_lay)
 
         # 7-Day Activity Stream Heatmap Grid
         heat_card = QFrame(self); heat_card.setProperty("class", "card"); hc_lay = QVBoxLayout(heat_card)
@@ -2262,6 +2715,11 @@ class StuntMainWindow(QMainWindow):
         self.lbl_days_left.setText(f"{days_left} Days Remaining")
         self.lbl_drawer_days.setText(f"{days_left} Days Left")
 
+        if hasattr(self, 'prof_progress_mini') and self.prof_progress_mini:
+            self.prof_progress_mini.setValue(int(pct))
+        if hasattr(self, 'lbl_prof_degree_pct') and self.lbl_prof_degree_pct:
+            self.lbl_prof_degree_pct.setText(f"{pct:.1f}% Degree Done")
+
         # 1. CGPA & SGPA Calculations
         grades = self.data.get('grades', [])
         total_pts = sum(g['credits'] * g['gradePoints'] for g in grades)
@@ -2343,8 +2801,104 @@ class StuntMainWindow(QMainWindow):
         self.refresh_milestones_table()
         self.refresh_heatmap()
         self.refresh_badges_and_xp()
+        self.refresh_dash_schedule()
 
         self.finance_canvas.update_charts(self.data['finances'])
+
+    def refresh_dash_schedule(self):
+        if not hasattr(self, 'dash_sched_content_lay'):
+            return
+
+        while self.dash_sched_content_lay.count():
+            item = self.dash_sched_content_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                while item.layout().count():
+                    child = item.layout().takeAt(0)
+                    if child.widget():
+                        child.widget().deleteLater()
+
+        today_name = datetime.now().strftime("%A")
+        if hasattr(self, 'lbl_dash_today_date') and self.lbl_dash_today_date:
+            self.lbl_dash_today_date.setText(datetime.now().strftime("%A, %B %d, %Y"))
+
+        all_tt = self.data.get('timetable', [])
+        slots = [s for s in all_tt if s.get('day', '').lower() == today_name.lower()]
+
+        def get_start_mins(slot):
+            m = parse_time_to_minutes(slot.get('start', ''))
+            return m if m is not None else 9999
+
+        slots.sort(key=get_start_mins)
+
+        if not slots:
+            card_empty = QFrame(self.dash_sched_card)
+            card_empty.setStyleSheet("background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px;")
+            ce_lay = QHBoxLayout(card_empty)
+            ce_lay.setContentsMargins(12, 8, 12, 8)
+            lbl_empty = QLabel(f"🎉 No lectures scheduled for {today_name}! Perfect day for revision, focus sprints, or resting.", card_empty)
+            lbl_empty.setStyleSheet("color: #94a3b8; font-size: 12px;")
+            btn_go_tt = QPushButton("📅 Open Full Timetable", card_empty)
+            btn_go_tt.setStyleSheet("background: rgba(99, 102, 241, 0.15); border: 1px solid #6366f1; color: #818cf8; font-size: 11px; padding: 5px 12px; border-radius: 6px; font-weight: bold;")
+            btn_go_tt.clicked.connect(lambda: self.switch_view(6))
+            ce_lay.addWidget(lbl_empty)
+            ce_lay.addStretch()
+            ce_lay.addWidget(btn_go_tt)
+            self.dash_sched_content_lay.addWidget(card_empty)
+            return
+
+        now_dt = datetime.now()
+        now_mins = now_dt.hour * 60 + now_dt.minute
+
+        for slot in slots:
+            s_mins = parse_time_to_minutes(slot.get('start', ''))
+            e_mins = parse_time_to_minutes(slot.get('end', ''))
+
+            row_frame = QFrame(self.dash_sched_card)
+            is_active = (s_mins is not None and e_mins is not None and s_mins <= now_mins <= e_mins)
+            is_next = (s_mins is not None and s_mins > now_mins and (s_mins - now_mins) <= 60)
+
+            if is_active:
+                row_frame.setStyleSheet("background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.4); border-radius: 8px; padding: 8px 12px;")
+            elif is_next:
+                row_frame.setStyleSheet("background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 8px 12px;")
+            else:
+                row_frame.setStyleSheet("background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 8px 12px;")
+
+            rf_lay = QHBoxLayout(row_frame)
+            rf_lay.setContentsMargins(10, 8, 10, 8)
+            rf_lay.setSpacing(12)
+
+            time_lbl = QLabel(f"⏰ {slot.get('start')} - {slot.get('end')}", row_frame)
+            time_lbl.setStyleSheet("font-weight: bold; color: #38bdf8; font-size: 12px; min-width: 140px;")
+            rf_lay.addWidget(time_lbl)
+
+            sub_lbl = QLabel(f"📖 {slot.get('subject')}", row_frame)
+            sub_lbl.setStyleSheet("font-weight: bold; color: #ffffff; font-size: 13px;")
+            rf_lay.addWidget(sub_lbl)
+
+            loc_lbl = QLabel(f"📍 {slot.get('location', 'Room')} • 👤 {slot.get('instructor', 'Faculty')}", row_frame)
+            loc_lbl.setStyleSheet("color: #94a3b8; font-size: 11px;")
+            rf_lay.addWidget(loc_lbl)
+
+            rf_lay.addStretch()
+
+            if is_active:
+                badge = QLabel("🔴 CURRENT CLASS", row_frame)
+                badge.setStyleSheet("background: rgba(244, 63, 94, 0.2); border: 1px solid #f43f5e; color: #f43f5e; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px;")
+                rf_lay.addWidget(badge)
+            elif is_next:
+                badge = QLabel(f"⏳ IN {s_mins - now_mins} MINS", row_frame)
+                badge.setStyleSheet("background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #f59e0b; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 10px;")
+                rf_lay.addWidget(badge)
+
+            btn_p = QPushButton("✅ Mark Present", row_frame)
+            btn_p.setStyleSheet("background: #10b981; color: #ffffff; font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: bold; border: none;")
+            btn_p.clicked.connect(lambda checked=False, s=slot: self.quick_log_slot_attendance(s, "Present"))
+            rf_lay.addWidget(btn_p)
+
+            self.dash_sched_content_lay.addWidget(row_frame)
 
     # DYNAMIC 7-DAY PRODUCTIVITY HEATMAP
     def refresh_heatmap(self):
@@ -3346,7 +3900,7 @@ class StuntMainWindow(QMainWindow):
         else:
             sub_id = sub_obj['id']
 
-        att_id = f"att-{int(datetime.now().timestamp())}"
+        att_id = f"att-{int(datetime.now().timestamp() * 1000)}-{os.urandom(3).hex()}"
         db.save_attendance({
             'id': att_id,
             'sem': sem,
