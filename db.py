@@ -354,8 +354,11 @@ def save_subject(sub_dict):
 def delete_subject(sub_id):
     conn = get_connection()
     conn.execute('DELETE FROM subjects WHERE id = ?', (sub_id,))
+    conn.execute('DELETE FROM attendance_logs WHERE subjectId = ?', (sub_id,))
+    conn.execute('DELETE FROM syllabus WHERE subjectId = ?', (sub_id,))
     conn.commit()
     conn.close()
+
 
 def save_attendance(att_dict):
     conn = get_connection()

@@ -13,14 +13,14 @@ from datetime import datetime, date, timedelta
 
 import db
 
-from PyQt6.QtCore import Qt, QTimer, QUrl, QSize, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, QUrl, QSize, QThread, pyqtSignal, QDate
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QLineEdit, QDialog, QTableWidget,
     QTableWidgetItem, QHeaderView, QStackedWidget, QProgressBar, QFrame,
     QFileDialog, QMessageBox, QTabWidget, QListWidget, QListWidgetItem,
     QTextEdit, QGraphicsOpacityEffect, QScrollArea, QGridLayout, QFormLayout,
-    QSystemTrayIcon, QSplitter
+    QSystemTrayIcon, QSplitter, QCalendarWidget, QDateEdit
 )
 from PyQt6.QtGui import QIcon, QPixmap, QColor, QFont, QImage, QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
@@ -2322,6 +2322,7 @@ class StuntMainWindow(QMainWindow):
 
     # 5. ATTENDANCE & BUNK SAFETY CALCULATOR VIEW (with Draggable Size Ratio Splitter)
     def init_attendance_view(self):
+        self.selected_calendar_date = None
         view = QWidget(self); main_lay = QVBoxLayout(view); main_lay.setContentsMargins(24, 24, 24, 24); main_lay.setSpacing(12)
 
         hdr_lay = QHBoxLayout()
@@ -2335,38 +2336,127 @@ class StuntMainWindow(QMainWindow):
 
         btn_add_sub = QPushButton("+ Add Subject", self); btn_add_sub.clicked.connect(self.open_subject_dialog)
         hdr_lay.addWidget(btn_add_sub)
+
+        btn_log_att = QPushButton("+ Log Attendance", self); btn_log_att.setProperty("class", "primary")
+        btn_log_att.clicked.connect(lambda: self.open_attendance_dialog())
+        hdr_lay.addWidget(btn_log_att)
+
         main_lay.addLayout(hdr_lay)
 
         splitter = QSplitter(Qt.Orientation.Vertical, self)
 
-        # Top Panel: Subject Cards Container
+        # Top Panel: Subject Cards Container (Scrollable)
         top_w = QWidget()
         top_lay = QVBoxLayout(top_w); top_lay.setContentsMargins(0, 0, 0, 0); top_lay.setSpacing(6)
-        top_lay.addWidget(QLabel("🏛️ SUBJECT ATTENDANCE & BUNK SAFETY CARDS (Drag bar below to adjust size ratio)", self))
+        top_lay.addWidget(QLabel("🏛️ SUBJECT ATTENDANCE & BUNK SAFETY CARDS (Edit & Delete on each card)", self))
 
-        self.sub_cards_area = QWidget(self)
+        sub_scroll = QScrollArea(self)
+        sub_scroll.setWidgetResizable(True)
+        sub_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        self.sub_cards_area = QWidget()
         self.sub_cards_lay = QGridLayout(self.sub_cards_area)
-        top_lay.addWidget(self.sub_cards_area)
+        self.sub_cards_lay.setSpacing(10)
+        sub_scroll.setWidget(self.sub_cards_area)
+        top_lay.addWidget(sub_scroll)
         splitter.addWidget(top_w)
 
-        # Bottom Panel: Attendance History Table
+        # Bottom Panel: Calendar + Attendance History Table
         bot_w = QWidget()
-        bot_lay = QVBoxLayout(bot_w); bot_lay.setContentsMargins(0, 0, 0, 0); bot_lay.setSpacing(6)
+        bot_lay = QHBoxLayout(bot_w); bot_lay.setContentsMargins(0, 0, 0, 0); bot_lay.setSpacing(14)
 
-        self.att_search = QLineEdit(self); self.att_search.setPlaceholderText("Search subject or date..."); self.att_search.textChanged.connect(self.refresh_attendance_table)
-        bot_lay.addWidget(self.att_search)
+        # Left: Compact Attendance Calendar Panel
+        cal_panel = QFrame(self); cal_panel.setProperty("class", "card")
+        cal_panel.setFixedWidth(290)
+        cp_lay = QVBoxLayout(cal_panel); cp_lay.setContentsMargins(10, 10, 10, 10); cp_lay.setSpacing(8)
+
+        cp_hdr = QLabel("📅 Attendance Calendar", self)
+        cp_hdr.setStyleSheet("font-weight: bold; font-size: 13px; color: #818cf8;")
+        cp_lay.addWidget(cp_hdr)
+
+        self.att_calendar = QCalendarWidget(self)
+        self.att_calendar.setGridVisible(True)
+        self.att_calendar.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
+        self.att_calendar.setStyleSheet("""
+            QCalendarWidget QWidget { alternate-background-color: #16192d; }
+            QCalendarWidget QAbstractItemView:enabled {
+                color: #e2e8f0; background-color: #0f1222;
+                selection-background-color: #6366f1; selection-color: #ffffff;
+                font-size: 11px;
+            }
+            QCalendarWidget QToolButton {
+                color: #f8fafc; background-color: #1a1e36;
+                border-radius: 4px; font-weight: bold; height: 24px;
+            }
+            QCalendarWidget QMenu { background-color: #16192d; color: #ffffff; }
+            QCalendarWidget QSpinBox { background-color: #1a1e36; color: #ffffff; }
+        """)
+        self.att_calendar.clicked.connect(self.on_calendar_date_clicked)
+        cp_lay.addWidget(self.att_calendar)
+
+        self.lbl_selected_cal_date = QLabel(f"Selected: {date.today().strftime('%Y-%m-%d')}", self)
+        self.lbl_selected_cal_date.setStyleSheet("font-size: 11px; color: #0ea5e9; font-weight: bold;")
+        cp_lay.addWidget(self.lbl_selected_cal_date)
+
+        cal_btn_row = QHBoxLayout(); cal_btn_row.setSpacing(6)
+        btn_log_sel_date = QPushButton("➕ Log For Date", self)
+        btn_log_sel_date.setProperty("class", "primary")
+        btn_log_sel_date.clicked.connect(self.log_attendance_for_selected_date)
+        cal_btn_row.addWidget(btn_log_sel_date)
+
+        self.btn_clear_cal_filter = QPushButton("Show All Dates", self)
+        self.btn_clear_cal_filter.setStyleSheet("background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 11px;")
+        self.btn_clear_cal_filter.clicked.connect(self.clear_calendar_filter)
+        cal_btn_row.addWidget(self.btn_clear_cal_filter)
+        cp_lay.addLayout(cal_btn_row)
+
+        bot_lay.addWidget(cal_panel)
+
+        # Right: Attendance History Table + Controls
+        table_panel = QWidget(self)
+        tp_lay = QVBoxLayout(table_panel); tp_lay.setContentsMargins(0, 0, 0, 0); tp_lay.setSpacing(6)
+
+        tp_top = QHBoxLayout()
+        self.att_search = QLineEdit(self)
+        self.att_search.setPlaceholderText("Search subject, date, or status...")
+        self.att_search.textChanged.connect(self.refresh_attendance_table)
+        tp_top.addWidget(self.att_search)
+
+        self.lbl_date_filter_status = QLabel("Showing: All Dates", self)
+        self.lbl_date_filter_status.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: bold; padding: 0 4px;")
+        tp_top.addWidget(self.lbl_date_filter_status)
+
+        tp_lay.addLayout(tp_top)
 
         self.att_table = QTableWidget(self)
         self.att_table.setColumnCount(6)
         self.att_table.setHorizontalHeaderLabels(["Date", "Semester", "Subject", "Status", "Remarks", "Actions"])
         self.att_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        bot_lay.addWidget(self.att_table)
+        tp_lay.addWidget(self.att_table)
+
+        bot_lay.addWidget(table_panel, stretch=1)
 
         splitter.addWidget(bot_w)
         splitter.setSizes([260, 440])
 
         main_lay.addWidget(splitter)
         self.views_stack.addWidget(view)
+
+    def on_calendar_date_clicked(self, qdate):
+        self.selected_calendar_date = qdate.toString("yyyy-MM-dd")
+        if hasattr(self, 'lbl_selected_cal_date'):
+            self.lbl_selected_cal_date.setText(f"Selected: {self.selected_calendar_date}")
+        self.refresh_attendance_table()
+
+    def clear_calendar_filter(self):
+        self.selected_calendar_date = None
+        if hasattr(self, 'lbl_selected_cal_date'):
+            self.lbl_selected_cal_date.setText(f"Selected: {date.today().strftime('%Y-%m-%d')}")
+        self.refresh_attendance_table()
+
+    def log_attendance_for_selected_date(self):
+        sel_date = getattr(self, 'selected_calendar_date', None) or date.today().strftime("%Y-%m-%d")
+        self.open_attendance_dialog(default_date=sel_date)
+
 
     # 6. FINANCE & TARGETED SAVINGS VIEW (with Draggable Splitter & Smooth ScrollArea)
     def init_finance_view(self):
@@ -3119,16 +3209,21 @@ class StuntMainWindow(QMainWindow):
 
         def save():
             entered_sub = sub_combo.currentText().strip()
-            if unit_in.text() and entered_sub:
+            if " (" in entered_sub and entered_sub.endswith(")"):
+                clean_name = entered_sub.rsplit(" (", 1)[0].strip()
+            else:
+                clean_name = entered_sub
+
+            if unit_in.text() and clean_name:
                 sub_id = sub_combo.currentData()
-                sub_obj = next((s for s in self.data['subjects'] if s['id'] == sub_id or s['name'].lower() in entered_sub.lower()), None)
+                sub_obj = next((s for s in self.data['subjects'] if s['id'] == sub_id or s['name'].lower() == clean_name.lower()), None)
                 if not sub_obj:
                     sub_id = f"sub-{int(datetime.now().timestamp())}"
                     sub_obj = {
                         'id': sub_id,
                         'sem': 1,
-                        'name': entered_sub,
-                        'code': entered_sub[:6].upper(),
+                        'name': clean_name,
+                        'code': clean_name[:6].upper(),
                         'faculty': 'Faculty',
                         'targetPct': self.profile.get('targetAttendancePct', 75.0),
                         'color': '#6366f1'
@@ -3138,7 +3233,7 @@ class StuntMainWindow(QMainWindow):
                 db.save_syllabus({
                     'id': edit_item['id'] if edit_item else f"syl-{int(datetime.now().timestamp())}",
                     'subjectId': sub_obj['id'],
-                    'subjectName': entered_sub,
+                    'subjectName': clean_name,
                     'unitName': unit_in.text(),
                     'status': status_combo.currentText(),
                     'notes': notes_in.text()
@@ -3524,34 +3619,77 @@ class StuntMainWindow(QMainWindow):
             item = self.sub_cards_lay.itemAt(i)
             if item.widget(): item.widget().setParent(None)
 
-        for col, s in enumerate(subjects):
-            logs = [l for l in self.data['attendanceLogs'] if l['subjectId'] == s['id']]
-            total = len(logs)
-            present = sum(1 for l in logs if l['status'] == 'Present')
-            pct = (present / total * 100.0) if total > 0 else 0.0
+        if not subjects:
+            empty_lbl = QLabel(f"No subjects configured for Semester {sem}. Click '+ Add Subject' above to add subjects!", self)
+            empty_lbl.setStyleSheet("color: #94a3b8; font-style: italic; padding: 12px;")
+            self.sub_cards_lay.addWidget(empty_lbl, 0, 0)
+        else:
+            cards_per_row = 4
+            for idx, s in enumerate(subjects):
+                row_idx = idx // cards_per_row
+                col_idx = idx % cards_per_row
+                logs = [l for l in self.data['attendanceLogs'] if l['subjectId'] == s['id']]
+                total = len(logs)
+                present = sum(1 for l in logs if l['status'] == 'Present')
+                pct = (present / total * 100.0) if total > 0 else 0.0
 
-            card = QFrame(self); card.setProperty("class", "card")
-            c_lay = QVBoxLayout(card)
+                card = QFrame(self); card.setProperty("class", "card")
+                c_lay = QVBoxLayout(card)
+                c_lay.setContentsMargins(12, 10, 12, 10)
+                c_lay.setSpacing(6)
 
-            c_lay.addWidget(QLabel(f"<b>{s['name']}</b> ({s['code']})", self))
-            c_lay.addWidget(QLabel(f"Attendance: {present}/{total} ({pct:.1f}%)", self))
+                hdr_lbl = QLabel(f"<b>{s['name']}</b> ({s['code']})", self)
+                hdr_lbl.setStyleSheet("font-size: 13px; color: #ffffff;")
+                c_lay.addWidget(hdr_lbl)
 
-            if total == 0:
-                badge = QLabel("No classes logged yet", self); badge.setStyleSheet("color: #64748b;")
-            elif pct >= (target_r * 100.0):
-                safe_bunks = math.floor((present - target_r * total) / target_r)
-                badge = QLabel(f"🟢 SAFE: Can bunk {safe_bunks} classes", self)
-                badge.setStyleSheet("color: #10b981; font-weight: bold;")
-            else:
-                must_attend = math.ceil((target_r * total - present) / (1 - target_r))
-                badge = QLabel(f"🔴 CRITICAL: Attend next {must_attend} lectures!", self)
-                badge.setStyleSheet("color: #f43f5e; font-weight: bold;")
+                c_lay.addWidget(QLabel(f"Attendance: {present}/{total} ({pct:.1f}%)", self))
 
-            c_lay.addWidget(badge)
-            self.sub_cards_lay.addWidget(card, 0, col)
+                if total == 0:
+                    badge = QLabel("No classes logged yet", self); badge.setStyleSheet("color: #64748b; font-size: 11px;")
+                elif pct >= (target_r * 100.0):
+                    safe_bunks = math.floor((present - target_r * total) / target_r)
+                    badge = QLabel(f"🟢 SAFE: Can bunk {safe_bunks} classes", self)
+                    badge.setStyleSheet("color: #10b981; font-weight: bold; font-size: 11px;")
+                else:
+                    must_attend = math.ceil((target_r * total - present) / (1 - target_r))
+                    badge = QLabel(f"🔴 CRITICAL: Attend next {must_attend} lectures!", self)
+                    badge.setStyleSheet("color: #f43f5e; font-weight: bold; font-size: 11px;")
+
+                c_lay.addWidget(badge)
+
+                # Action buttons on subject cards
+                btn_box = QHBoxLayout()
+                btn_box.setSpacing(6)
+
+                btn_edit_sub = QPushButton("✏️ Edit", self)
+                btn_edit_sub.setStyleSheet("background: rgba(99, 102, 241, 0.2); border: 1px solid #6366f1; color: #818cf8; font-weight: bold; border-radius: 5px; padding: 4px 10px; font-size: 11px;")
+                btn_edit_sub.clicked.connect(lambda checked, item=s: self.open_subject_dialog(item))
+                btn_box.addWidget(btn_edit_sub)
+
+                btn_del_sub = QPushButton("🗑️ Delete", self)
+                btn_del_sub.setStyleSheet("background: rgba(244, 63, 94, 0.2); border: 1px solid #f43f5e; color: #fb7185; font-weight: bold; border-radius: 5px; padding: 4px 10px; font-size: 11px;")
+                btn_del_sub.clicked.connect(lambda checked, sid=s['id'], sname=s['name']: self.delete_sub(sid, sname))
+                btn_box.addWidget(btn_del_sub)
+
+                c_lay.addLayout(btn_box)
+                self.sub_cards_lay.addWidget(card, row_idx, col_idx)
 
         query = self.att_search.text().lower() if hasattr(self, 'att_search') else ""
-        logs = [l for l in self.data['attendanceLogs'] if not query or query in l['subjectName'].lower() or query in l['date'].lower()]
+        cal_date = getattr(self, 'selected_calendar_date', None)
+
+        logs = self.data['attendanceLogs']
+        if cal_date:
+            logs = [l for l in logs if l['date'] == cal_date]
+        if query:
+            logs = [l for l in logs if not query or query in l['subjectName'].lower() or query in l['date'].lower() or query in l.get('status', '').lower()]
+
+        if hasattr(self, 'lbl_date_filter_status'):
+            if cal_date:
+                self.lbl_date_filter_status.setText(f"Filter: {cal_date} ({len(logs)} entries)")
+                self.lbl_date_filter_status.setStyleSheet("color: #38bdf8; font-size: 11px; font-weight: bold;")
+            else:
+                self.lbl_date_filter_status.setText(f"Showing: All Dates ({len(logs)} entries)")
+                self.lbl_date_filter_status.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: bold;")
 
         self.att_table.setRowCount(len(logs))
         for row, l in enumerate(logs):
@@ -3573,6 +3711,12 @@ class StuntMainWindow(QMainWindow):
             act_lay.addWidget(btn_del)
 
             self.att_table.setCellWidget(row, 5, act_widget)
+
+    def delete_sub(self, sid, sname):
+        if QMessageBox.question(self, "Confirm Delete Subject", f"Delete subject '{sname}' and all its attendance records?") == QMessageBox.StandardButton.Yes:
+            db.delete_subject(sid)
+            self.refresh_all_views()
+            self.send_notification("Subject Deleted 🗑️", f"Subject '{sname}' removed.")
 
     def delete_att(self, lid):
         if QMessageBox.question(self, "Confirm Delete", "Delete attendance log?") == QMessageBox.StandardButton.Yes:
@@ -4038,21 +4182,51 @@ class StuntMainWindow(QMainWindow):
 
     # DIALOG OPENERS
     def open_grade_dialog(self, edit_item=None):
-        dlg = QDialog(self); dlg.setWindowTitle("Edit Subject Grade" if edit_item else "Log Subject Grade"); dlg.setFixedWidth(360)
+        dlg = QDialog(self); dlg.setWindowTitle("Edit Subject Grade" if edit_item else "Log Subject Grade"); dlg.setFixedWidth(380)
         lay = QVBoxLayout(dlg)
 
         sem_in = QLineEdit(dlg); sem_in.setText(str(edit_item['sem']) if edit_item else "1")
+
+        # Subject Dropdown (editable to allow custom or existing)
+        sub_combo = QComboBox(dlg)
+        sub_combo.setEditable(True)
+        sub_combo.lineEdit().setPlaceholderText("Select or write subject name...")
+        for s in self.data.get('subjects', []):
+            sub_combo.addItem(f"{s['name']} ({s['code']})", s)
+
         code_in = QLineEdit(dlg); code_in.setText(edit_item['subjectCode'] if edit_item else "")
-        name_in = QLineEdit(dlg); name_in.setText(edit_item['subjectName'] if edit_item else "")
         cred_in = QLineEdit(dlg); cred_in.setText(str(edit_item['credits']) if edit_item else "4")
+
+        def on_sub_selected(idx):
+            data = sub_combo.itemData(idx)
+            if isinstance(data, dict):
+                code_in.setText(data.get('code', ''))
+                sem_in.setText(str(data.get('sem', 1)))
+
+        sub_combo.currentIndexChanged.connect(on_sub_selected)
+
+        if edit_item:
+            matched = False
+            for idx in range(sub_combo.count()):
+                if edit_item['subjectName'] in sub_combo.itemText(idx):
+                    sub_combo.setCurrentIndex(idx)
+                    matched = True
+                    break
+            if not matched:
+                sub_combo.setCurrentText(edit_item['subjectName'])
 
         gp_combo = QComboBox(dlg)
         grades_map = [("O (Outstanding - 10)", 10), ("A+ (Excellent - 9)", 9), ("A (Very Good - 8)", 8), ("B+ (Good - 7)", 7), ("B (Above Avg - 6)", 6), ("C (Average - 5)", 5), ("F (Fail - 0)", 0)]
         for label, val in grades_map: gp_combo.addItem(label, val)
+        if edit_item:
+            for i in range(gp_combo.count()):
+                if gp_combo.itemData(i) == edit_item.get('gradePoints'):
+                    gp_combo.setCurrentIndex(i)
+                    break
 
         lay.addWidget(QLabel("Semester:", dlg)); lay.addWidget(sem_in)
+        lay.addWidget(QLabel("Subject (Select from dropdown or type):", dlg)); lay.addWidget(sub_combo)
         lay.addWidget(QLabel("Subject Code:", dlg)); lay.addWidget(code_in)
-        lay.addWidget(QLabel("Subject Title:", dlg)); lay.addWidget(name_in)
         lay.addWidget(QLabel("Credit Hours:", dlg)); lay.addWidget(cred_in)
         lay.addWidget(QLabel("Grade Scored:", dlg)); lay.addWidget(gp_combo)
 
@@ -4061,11 +4235,15 @@ class StuntMainWindow(QMainWindow):
 
         def save():
             try:
+                entered_sub = sub_combo.currentText().strip()
+                if " (" in entered_sub and entered_sub.endswith(")"):
+                    entered_sub = entered_sub.rsplit(" (", 1)[0].strip()
+
                 db.save_grade({
                     'id': edit_item['id'] if edit_item else f"gr-{int(datetime.now().timestamp())}",
                     'sem': int(sem_in.text()),
                     'subjectCode': code_in.text(),
-                    'subjectName': name_in.text(),
+                    'subjectName': entered_sub,
                     'credits': int(cred_in.text()),
                     'gradePoints': gp_combo.currentData()
                 })
@@ -4127,7 +4305,7 @@ class StuntMainWindow(QMainWindow):
         dlg.exec()
 
     def open_subject_dialog(self, edit_item=None):
-        dlg = QDialog(self); dlg.setWindowTitle("Edit Subject" if edit_item else "Add Academic Subject"); dlg.setFixedWidth(360)
+        dlg = QDialog(self); dlg.setWindowTitle("Edit Academic Subject" if edit_item else "Add Academic Subject"); dlg.setFixedWidth(380)
         lay = QVBoxLayout(dlg)
 
         name_in = QLineEdit(dlg); name_in.setText(edit_item['name'] if edit_item else "")
@@ -4136,54 +4314,82 @@ class StuntMainWindow(QMainWindow):
 
         lay.addWidget(QLabel("Subject Title:", dlg)); lay.addWidget(name_in)
         lay.addWidget(QLabel("Subject Code:", dlg)); lay.addWidget(code_in)
-        lay.addWidget(QLabel("Faculty:", dlg)); lay.addWidget(fac_in)
+        lay.addWidget(QLabel("Faculty / Professor:", dlg)); lay.addWidget(fac_in)
 
         btn_save = QPushButton("Save Subject", dlg); btn_save.setProperty("class", "primary")
         lay.addWidget(btn_save)
 
         def save():
             if name_in.text() and code_in.text():
+                new_name = name_in.text().strip()
+                old_name = edit_item['name'] if edit_item else None
+                sub_id = edit_item['id'] if edit_item else f"sub-{int(datetime.now().timestamp())}"
                 db.save_subject({
-                    'id': edit_item['id'] if edit_item else f"sub-{int(datetime.now().timestamp())}",
+                    'id': sub_id,
                     'sem': edit_item['sem'] if edit_item else (self.att_sem_combo.currentData() or 1),
-                    'name': name_in.text(),
-                    'code': code_in.text(),
-                    'faculty': fac_in.text() or 'Faculty',
+                    'name': new_name,
+                    'code': code_in.text().strip().upper(),
+                    'faculty': fac_in.text().strip() or 'Faculty',
                     'targetPct': self.profile.get('targetAttendancePct', 75.0),
                     'color': '#6366f1'
                 })
+                if edit_item and old_name and old_name != new_name:
+                    conn = db.get_connection()
+                    conn.execute('UPDATE attendance_logs SET subjectName = ? WHERE subjectId = ?', (new_name, sub_id))
+                    conn.execute('UPDATE syllabus SET subjectName = ? WHERE subjectId = ?', (new_name, sub_id))
+                    conn.execute('UPDATE timetable SET subject = ? WHERE subject = ?', (new_name, old_name))
+                    conn.commit()
+                    conn.close()
+
                 dlg.accept()
                 self.refresh_all_views()
+                self.send_notification("Subject Saved 🏛️", f"Subject '{new_name}' saved successfully.")
 
         btn_save.clicked.connect(save)
         dlg.exec()
 
-    # EDITABLE WRITE-BY ATTENDANCE DIALOG
-    def open_attendance_dialog(self, edit_item=None):
-        dlg = QDialog(self); dlg.setWindowTitle("Edit Attendance Record" if edit_item else "Log Attendance Record"); dlg.setFixedWidth(380)
+    # EDITABLE WRITE-BY ATTENDANCE DIALOG (with Dropdown and Calendar Popup)
+    def open_attendance_dialog(self, edit_item=None, default_date=None):
+        dlg = QDialog(self); dlg.setWindowTitle("Edit Attendance Record" if edit_item else "Log Attendance Record"); dlg.setFixedWidth(400)
         lay = QVBoxLayout(dlg)
 
         sub_combo = QComboBox(dlg)
         sub_combo.setEditable(True)
-        sub_combo.lineEdit().setPlaceholderText("Write or select subject name...")
+        sub_combo.lineEdit().setPlaceholderText("Select or write subject name...")
 
-        for s in self.data['subjects']:
-            sub_combo.addItem(f"{s['name']} ({s['code']})", s['id'])
+        for s in self.data.get('subjects', []):
+            sub_combo.addItem(f"{s['name']} ({s['code']})", s['name'])
 
         if edit_item:
-            sub_combo.setCurrentText(edit_item['subjectName'])
+            matched = False
+            for idx in range(sub_combo.count()):
+                if edit_item['subjectName'] in sub_combo.itemText(idx):
+                    sub_combo.setCurrentIndex(idx)
+                    matched = True
+                    break
+            if not matched:
+                sub_combo.setCurrentText(edit_item['subjectName'])
 
         status_combo = QComboBox(dlg); status_combo.addItems(["Present", "Absent", "Leave", "Holiday"])
         if edit_item:
             s_idx = status_combo.findText(edit_item['status'])
             if s_idx != -1: status_combo.setCurrentIndex(s_idx)
 
-        date_in = QLineEdit(dlg); date_in.setText(edit_item['date'] if edit_item else date.today().strftime("%Y-%m-%d"))
+        date_edit = QDateEdit(dlg)
+        date_edit.setCalendarPopup(True)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
+        init_d_str = edit_item['date'] if edit_item else (default_date or date.today().strftime("%Y-%m-%d"))
+        qd = QDate.fromString(init_d_str, "yyyy-MM-dd")
+        if qd.isValid():
+            date_edit.setDate(qd)
+        else:
+            date_edit.setDate(QDate.currentDate())
+
         rem_in = QLineEdit(dlg); rem_in.setText(edit_item.get('remarks', '') if edit_item else "")
 
-        lay.addWidget(QLabel("Subject Name (Write or Select):", dlg)); lay.addWidget(sub_combo)
+        lay.addWidget(QLabel("Subject Name (Select or write):", dlg)); lay.addWidget(sub_combo)
         lay.addWidget(QLabel("Status:", dlg)); lay.addWidget(status_combo)
-        lay.addWidget(QLabel("Date (YYYY-MM-DD):", dlg)); lay.addWidget(date_in)
+        lay.addWidget(QLabel("Date (Click calendar icon to pick):", dlg)); lay.addWidget(date_edit)
         lay.addWidget(QLabel("Remarks / Topic / Lab:", dlg)); lay.addWidget(rem_in)
 
         btn_save = QPushButton("Save Attendance Record", dlg); btn_save.setProperty("class", "primary")
@@ -4192,33 +4398,39 @@ class StuntMainWindow(QMainWindow):
         def save():
             entered_sub = sub_combo.currentText().strip()
             if entered_sub:
-                sub_id = sub_combo.currentData()
-                sub_obj = next((s for s in self.data['subjects'] if s['id'] == sub_id or s['name'].lower() in entered_sub.lower()), None)
+                if " (" in entered_sub and entered_sub.endswith(")"):
+                    clean_name = entered_sub.rsplit(" (", 1)[0].strip()
+                else:
+                    clean_name = entered_sub
+
+                sub_obj = next((s for s in self.data['subjects'] if s['name'].lower() == clean_name.lower()), None)
                 if not sub_obj:
                     sub_id = f"sub-{int(datetime.now().timestamp())}"
                     sub_obj = {
                         'id': sub_id,
                         'sem': self.att_sem_combo.currentData() or 1,
-                        'name': entered_sub,
-                        'code': entered_sub[:6].upper(),
+                        'name': clean_name,
+                        'code': clean_name[:6].upper(),
                         'faculty': 'Faculty',
                         'targetPct': self.profile.get('targetAttendancePct', 75.0),
                         'color': '#6366f1'
                     }
                     db.save_subject(sub_obj)
 
+                import time
+                log_date = date_edit.date().toString("yyyy-MM-dd")
                 db.save_attendance({
-                    'id': edit_item['id'] if edit_item else f"att-{int(datetime.now().timestamp())}",
+                    'id': edit_item['id'] if edit_item else f"att-{int(time.time() * 1000)}-{os.urandom(3).hex()}",
                     'sem': sub_obj['sem'],
                     'subjectId': sub_obj['id'],
-                    'subjectName': entered_sub,
-                    'date': date_in.text(),
+                    'subjectName': clean_name,
+                    'date': log_date,
                     'status': status_combo.currentText(),
                     'remarks': rem_in.text()
                 })
                 dlg.accept()
                 self.refresh_all_views()
-                self.send_notification("Attendance Recorded 📋", f'{status_combo.currentText()} logged for {entered_sub}')
+                self.send_notification("Attendance Recorded 📋", f'{status_combo.currentText()} logged for {clean_name} ({log_date})')
             else:
                 QMessageBox.warning(dlg, "Missing Subject", "Please write or select a subject name.")
 
@@ -4269,7 +4481,7 @@ class StuntMainWindow(QMainWindow):
         dlg.exec()
 
     def open_timetable_dialog(self, edit_item=None):
-        dlg = QDialog(self); dlg.setWindowTitle("Edit Class Slot" if edit_item else "Add Class Slot"); dlg.setFixedWidth(360)
+        dlg = QDialog(self); dlg.setWindowTitle("Edit Class Slot" if edit_item else "Add Class Slot"); dlg.setFixedWidth(380)
         lay = QVBoxLayout(dlg)
 
         sem_combo = QComboBox(dlg)
@@ -4284,7 +4496,23 @@ class StuntMainWindow(QMainWindow):
             d_idx = day_combo.findText(edit_item['day'])
             if d_idx != -1: day_combo.setCurrentIndex(d_idx)
 
-        sub_in = QLineEdit(dlg); sub_in.setText(edit_item['subject'] if edit_item else "")
+        # Subject Dropdown Menu
+        sub_combo = QComboBox(dlg)
+        sub_combo.setEditable(True)
+        sub_combo.lineEdit().setPlaceholderText("Select or write subject name...")
+        for s in self.data.get('subjects', []):
+            sub_combo.addItem(f"{s['name']} ({s['code']})", s['name'])
+
+        if edit_item:
+            matched = False
+            for idx in range(sub_combo.count()):
+                if edit_item['subject'] in sub_combo.itemText(idx):
+                    sub_combo.setCurrentIndex(idx)
+                    matched = True
+                    break
+            if not matched:
+                sub_combo.setCurrentText(edit_item['subject'])
+
         start_in = QLineEdit(dlg); start_in.setText(edit_item['start'] if edit_item else "09:00 AM")
         end_in = QLineEdit(dlg); end_in.setText(edit_item['end'] if edit_item else "10:30 AM")
         loc_in = QLineEdit(dlg); loc_in.setText(edit_item['location'] if edit_item else "")
@@ -4292,7 +4520,7 @@ class StuntMainWindow(QMainWindow):
 
         lay.addWidget(QLabel("Semester:", dlg)); lay.addWidget(sem_combo)
         lay.addWidget(QLabel("Day:", dlg)); lay.addWidget(day_combo)
-        lay.addWidget(QLabel("Subject:", dlg)); lay.addWidget(sub_in)
+        lay.addWidget(QLabel("Subject (Select from dropdown or type):", dlg)); lay.addWidget(sub_combo)
         lay.addWidget(QLabel("Start Time:", dlg)); lay.addWidget(start_in)
         lay.addWidget(QLabel("End Time:", dlg)); lay.addWidget(end_in)
         lay.addWidget(QLabel("Location:", dlg)); lay.addWidget(loc_in)
@@ -4302,12 +4530,18 @@ class StuntMainWindow(QMainWindow):
         lay.addWidget(btn_save)
 
         def save():
-            if sub_in.text():
+            entered_sub = sub_combo.currentText().strip()
+            if " (" in entered_sub and entered_sub.endswith(")"):
+                clean_name = entered_sub.rsplit(" (", 1)[0].strip()
+            else:
+                clean_name = entered_sub
+
+            if clean_name:
                 db.save_timetable({
                     'id': edit_item['id'] if edit_item else f"tt-{int(datetime.now().timestamp())}",
                     'sem': sem_combo.currentData() or 1,
                     'day': day_combo.currentText(),
-                    'subject': sub_in.text(),
+                    'subject': clean_name,
                     'start': start_in.text(),
                     'end': end_in.text(),
                     'location': loc_in.text(),
