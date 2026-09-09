@@ -455,15 +455,16 @@ QScrollArea {{
 }}
 
 QScrollBar:vertical {{
-    background: transparent;
-    width: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    width: 8px;
     margin: 0px;
+    border-radius: 4px;
 }}
 
 QScrollBar::handle:vertical {{
-    background: rgba(255, 255, 255, 0.2);
-    min-height: 24px;
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.22);
+    min-height: 28px;
+    border-radius: 4px;
 }}
 
 QScrollBar::handle:vertical:hover {{
@@ -476,15 +477,16 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
 }}
 
 QScrollBar:horizontal {{
-    background: transparent;
-    height: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    height: 8px;
     margin: 0px;
+    border-radius: 4px;
 }}
 
 QScrollBar::handle:horizontal {{
-    background: rgba(255, 255, 255, 0.2);
-    min-width: 24px;
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.22);
+    min-width: 28px;
+    border-radius: 4px;
 }}
 
 QScrollBar::handle:horizontal:hover {{
@@ -497,57 +499,91 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
 }}
 """
 
-# Matplotlib Finance Chart Canvas
+# Matplotlib Finance Chart Canvas (High-Definition Analytics)
 class FinanceChartCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=3, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#181a27')
-        self.axes_donut = fig.add_subplot(121, facecolor='#181a27')
-        self.axes_bar = fig.add_subplot(122, facecolor='#181a27')
-        fig.tight_layout(pad=2.0)
+    def __init__(self, parent=None, width=10, height=3.5, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#111424')
+        self.axes_donut = fig.add_subplot(121, facecolor='#111424')
+        self.axes_bar = fig.add_subplot(122, facecolor='#111424')
+        fig.tight_layout(pad=2.5)
 
         super().__init__(fig)
         self.setParent(parent)
 
-    def update_charts(self, finances):
+    def update_charts(self, finances, profile=None):
         self.axes_donut.clear()
         self.axes_bar.clear()
+        self.figure.set_facecolor('#111424')
+        self.axes_donut.set_facecolor('#111424')
+        self.axes_bar.set_facecolor('#111424')
 
-        categories = ["Food & Dining", "Transport & Transit", "Academics & Books", "Entertainment", "Personal Supplies", "Miscellaneous"]
-        cat_totals = [sum(f['amount'] for f in finances if f['type'] == 'Expense' and f['category'] == cat) for cat in categories]
+        # 1. Left Chart: Category Breakdown Donut
+        cat_totals = {}
+        for f in finances:
+            if f.get('type') == 'Expense':
+                cat = f.get('category', 'Miscellaneous')
+                cat_totals[cat] = cat_totals.get(cat, 0.0) + f.get('amount', 0.0)
 
-        non_zero = [(cat, val) for cat, val in zip(categories, cat_totals) if val > 0]
-        if non_zero:
+        non_zero = [(cat, amt) for cat, amt in cat_totals.items() if amt > 0]
+        exp_total = sum(amt for _, amt in non_zero)
+
+        if non_zero and exp_total > 0:
             labels, values = zip(*non_zero)
-            colors = ['#f43f5e', '#0ea5e9', '#6366f1', '#f59e0b', '#10b981', '#8b5cf6']
-            wedges, texts, autotexts = self.axes_donut.pie(
-                values, labels=labels, autopct='%1.0f%%', startangle=140,
-                colors=colors[:len(values)], textprops=dict(color='#cbd5e1', fontsize=9)
+            palette = ['#ec4899', '#06b6d4', '#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#3b82f6', '#14b8a6']
+            colors = [palette[i % len(palette)] for i in range(len(values))]
+
+            wedges, texts = self.axes_donut.pie(
+                values, startangle=140, colors=colors,
+                wedgeprops=dict(width=0.42, edgecolor='#111424', linewidth=2.5)
             )
-            for at in autotexts: at.set_color('#ffffff'); at.set_fontsize(8); at.set_weight('bold')
-            centre_circle = matplotlib.patches.Circle((0,0), 0.55, fc='#181a27')
-            self.axes_donut.add_artist(centre_circle)
+
+            # Center hole summary badge
+            self.axes_donut.text(0, 0.08, f'₹{exp_total:,.0f}', color='#ffffff', ha='center', va='center', fontsize=12, fontweight='bold')
+            self.axes_donut.text(0, -0.15, 'Total Outflow', color='#94a3b8', ha='center', va='center', fontsize=8, fontweight='bold')
+
+            legend_labels = [f"{l}: ₹{v:,.0f} ({v/exp_total*100:.0f}%)" for l, v in zip(labels, values)]
+            self.axes_donut.legend(
+                wedges, legend_labels, loc="center left", bbox_to_anchor=(0.95, 0.5),
+                frameon=False, labelcolor="#cbd5e1", fontsize=8
+            )
         else:
-            self.axes_donut.text(0, 0, 'No Expenses Logged', color='#64748b', ha='center', va='center', fontsize=11)
+            self.axes_donut.text(0, 0, 'No Expenses Logged Yet\nLog expenses below to see breakdown', color='#64748b', ha='center', va='center', fontsize=10)
 
-        self.axes_donut.set_title('Expense Breakdown by Category', color='#ffffff', fontsize=11, fontweight='bold', pad=10)
+        self.axes_donut.set_title('EXPENSE BREAKDOWN BY CATEGORY', color='#f8fafc', fontsize=11, fontweight='bold', pad=12)
 
-        inc_total = sum(f['amount'] for f in finances if f['type'] == 'Income')
-        exp_total = sum(f['amount'] for f in finances if f['type'] == 'Expense')
+        # 2. Right Chart: Cash Flow & Budget Health
+        inc_total = sum(f.get('amount', 0.0) for f in finances if f.get('type') == 'Income')
+        net_balance = inc_total - exp_total
+        cap = (profile.get('monthlyBudgetCap', 5000.0) if profile else 5000.0)
 
-        bars = self.axes_bar.bar(['Total Income', 'Total Expense'], [inc_total, exp_total], color=['#0ea5e9', '#f43f5e'], width=0.45)
-        self.axes_bar.set_title('Income vs Expense Overview (₹)', color='#ffffff', fontsize=11, fontweight='bold', pad=10)
+        bar_labels = ['Total Income', 'Total Expense', 'Net Surplus']
+        bar_values = [inc_total, exp_total, max(0, net_balance)]
+        bar_colors = ['#10b981', '#f43f5e', '#0ea5e9' if net_balance >= 0 else '#f59e0b']
+
+        bars = self.axes_bar.bar(bar_labels, bar_values, color=bar_colors, width=0.48, edgecolor=(1, 1, 1, 0.15), linewidth=1)
+        self.axes_bar.set_title('CASH FLOW & BUDGET HEALTH (₹)', color='#f8fafc', fontsize=11, fontweight='bold', pad=12)
         self.axes_bar.tick_params(colors='#94a3b8', labelsize=9)
-        self.axes_bar.set_facecolor('#181a27')
         self.axes_bar.spines['top'].set_visible(False)
         self.axes_bar.spines['right'].set_visible(False)
-        self.axes_bar.spines['left'].set_color('#1e2030')
-        self.axes_bar.spines['bottom'].set_color('#1e2030')
+        self.axes_bar.spines['left'].set_color('#22263d')
+        self.axes_bar.spines['bottom'].set_color('#22263d')
+        self.axes_bar.grid(axis='y', color=(1, 1, 1, 0.08), linestyle='--', linewidth=0.8)
+        self.axes_bar.set_axisbelow(True)
 
-        for bar in bars:
-            yval = bar.get_height()
-            if yval > 0:
-                self.axes_bar.text(bar.get_x() + bar.get_width()/2.0, yval + 50, f'₹{yval:,.0f}', ha='center', va='bottom', color='#ffffff', fontsize=9, fontweight='bold')
+        if cap > 0:
+            self.axes_bar.axhline(cap, color='#f59e0b', linestyle='--', linewidth=1.5, alpha=0.85, label=f'Budget Cap (₹{cap:,.0f})')
+            self.axes_bar.legend(loc='upper right', frameon=False, labelcolor='#fbbf24', fontsize=8)
 
+        max_y = max(max(bar_values + [cap, 1000]), 100)
+        self.axes_bar.set_ylim(0, max_y * 1.25)
+        for bar, val in zip(bars, bar_values):
+            if val > 0:
+                self.axes_bar.text(
+                    bar.get_x() + bar.get_width()/2.0, val + (max_y * 0.03),
+                    f'₹{val:,.0f}', ha='center', va='bottom', color='#ffffff', fontsize=9, fontweight='bold'
+                )
+
+        self.figure.tight_layout(pad=2.2)
         self.draw()
 
 # Matplotlib CGPA / SGPA Trend Canvas
@@ -2458,85 +2494,188 @@ class StuntMainWindow(QMainWindow):
         self.open_attendance_dialog(default_date=sel_date)
 
 
-    # 6. FINANCE & TARGETED SAVINGS VIEW (with Draggable Splitter & Smooth ScrollArea)
+    # 6. FINANCE & TARGETED SAVINGS VIEW (Modern Glassmorphic Dashboard with Full Smooth Scroll)
     def init_finance_view(self):
-        view = QWidget(self); main_lay = QVBoxLayout(view); main_lay.setContentsMargins(24, 24, 24, 24); main_lay.setSpacing(12)
+        view = QWidget(self)
+        v_lay = QVBoxLayout(view)
+        v_lay.setContentsMargins(0, 0, 0, 0)
+        v_lay.setSpacing(0)
 
+        # Primary Smooth Scroll Area
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+
+        content = QWidget()
+        main_lay = QVBoxLayout(content)
+        main_lay.setContentsMargins(24, 24, 24, 24)
+        main_lay.setSpacing(18)
+
+        # 1. Header Bar
         hdr_lay = QHBoxLayout()
-        hdr_lay.addWidget(QLabel("Finance Ledger & Targeted Savings Goals", self))
+        lbl_fin_hdr = QLabel("Finance Ledger & Targeted Savings Studio", self)
+        lbl_fin_hdr.setProperty("class", "h2")
+        hdr_lay.addWidget(lbl_fin_hdr)
         hdr_lay.addStretch()
 
-        btn_split = QPushButton("🧾 + Split Bill / Expense", self); btn_split.clicked.connect(self.open_group_expense_dialog)
+        btn_split = QPushButton("🧾 + Split Bill / Expense", self)
+        btn_split.clicked.connect(self.open_group_expense_dialog)
         hdr_lay.addWidget(btn_split)
 
-        btn_add_sg = QPushButton("🎯 + New Savings Goal", self); btn_add_sg.setProperty("class", "success"); btn_add_sg.clicked.connect(self.open_savings_goal_dialog)
+        btn_add_sg = QPushButton("🎯 + New Savings Goal", self)
+        btn_add_sg.setProperty("class", "success")
+        btn_add_sg.clicked.connect(self.open_savings_goal_dialog)
         hdr_lay.addWidget(btn_add_sg)
 
-        btn_rec_allow = QPushButton("+ Receive Allowance", self); btn_rec_allow.clicked.connect(lambda: self.open_finance_dialog("Income"))
+        btn_rec_allow = QPushButton("+ Receive Allowance", self)
+        btn_rec_allow.clicked.connect(lambda: self.open_finance_dialog("Income"))
         hdr_lay.addWidget(btn_rec_allow)
 
-        btn_log_exp = QPushButton("+ Log Expense", self); btn_log_exp.setProperty("class", "primary"); btn_log_exp.clicked.connect(lambda: self.open_finance_dialog("Expense"))
+        btn_log_exp = QPushButton("+ Log Expense", self)
+        btn_log_exp.setProperty("class", "primary")
+        btn_log_exp.clicked.connect(lambda: self.open_finance_dialog("Expense"))
         hdr_lay.addWidget(btn_log_exp)
 
         main_lay.addLayout(hdr_lay)
 
-        splitter = QSplitter(Qt.Orientation.Vertical, self)
+        # 2. Finance KPI HUD Cards (4 Metrics in a row)
+        kpi_grid = QGridLayout()
+        kpi_grid.setContentsMargins(0, 0, 0, 0)
+        kpi_grid.setSpacing(12)
 
-        # Top Panel: Scrollable Container for Expense Splitter, Savings Goals, Graphs
-        top_scroll = QScrollArea(self)
-        top_scroll.setWidgetResizable(True)
-        top_scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        def make_kpi(title, icon, accent_col):
+            card = QFrame(self); card.setProperty("class", "card")
+            c_lay = QVBoxLayout(card)
+            c_lay.setContentsMargins(16, 14, 16, 14); c_lay.setSpacing(4)
+            lbl_t = QLabel(f"{icon} {title}", self)
+            lbl_t.setStyleSheet("font-size: 11px; font-weight: bold; color: #94a3b8; text-transform: uppercase;")
+            c_lay.addWidget(lbl_t)
+            lbl_v = QLabel("₹0", self)
+            lbl_v.setStyleSheet(f"font-size: 22px; font-weight: bold; color: {accent_col};")
+            c_lay.addWidget(lbl_v)
+            lbl_s = QLabel("", self)
+            lbl_s.setStyleSheet("font-size: 11px; color: #64748b;")
+            c_lay.addWidget(lbl_s)
+            return card, lbl_v, lbl_s
 
-        top_content = QWidget()
-        tc_lay = QVBoxLayout(top_content); tc_lay.setContentsMargins(0, 0, 0, 0); tc_lay.setSpacing(12)
+        self.card_inc, self.lbl_fin_inc, self.lbl_fin_inc_sub = make_kpi("Total Income / Allowance", "💵", "#10b981")
+        self.card_exp, self.lbl_fin_exp, self.lbl_fin_exp_sub = make_kpi("Total Outflow / Expenses", "💸", "#f43f5e")
+        self.card_bal, self.lbl_fin_bal, self.lbl_fin_bal_sub = make_kpi("Net Current Balance", "💼", "#0ea5e9")
+        self.card_sav, self.lbl_fin_sav, self.lbl_fin_sav_sub = make_kpi("Targeted Savings Accumulated", "🎯", "#a855f7")
 
-        # Roommate Group Expense Splitter Card
-        ge_card = QFrame(self); ge_card.setProperty("class", "card"); gec_lay = QVBoxLayout(ge_card)
-        gec_lay.addWidget(QLabel("🧾 ROOMMATE & GROUP EXPENSE SPLITTER", self))
+        kpi_grid.addWidget(self.card_inc, 0, 0)
+        kpi_grid.addWidget(self.card_exp, 0, 1)
+        kpi_grid.addWidget(self.card_bal, 0, 2)
+        kpi_grid.addWidget(self.card_sav, 0, 3)
+        main_lay.addLayout(kpi_grid)
+
+        # 3. Visual Analytics Charts Section
+        chart_card = QFrame(self); chart_card.setProperty("class", "card")
+        cc_lay = QVBoxLayout(chart_card); cc_lay.setContentsMargins(14, 14, 14, 14); cc_lay.setSpacing(8)
+
+        chart_hdr = QHBoxLayout()
+        lbl_c_title = QLabel("📊 Financial Analytics & Visual Intelligence", self)
+        lbl_c_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #ffffff;")
+        chart_hdr.addWidget(lbl_c_title)
+        chart_hdr.addStretch()
+        lbl_c_hint = QLabel("Real-time category breakdown & cash flow health", self)
+        lbl_c_hint.setStyleSheet("font-size: 11px; color: #64748b;")
+        chart_hdr.addWidget(lbl_c_hint)
+        cc_lay.addLayout(chart_hdr)
+
+        self.finance_canvas = FinanceChartCanvas(self, width=10, height=3.5, dpi=100)
+        self.finance_canvas.setMinimumHeight(320)
+        cc_lay.addWidget(self.finance_canvas)
+        main_lay.addWidget(chart_card)
+
+        # 4. Targeted Savings Goals & Wishlist Section
+        sg_section_card = QFrame(self); sg_section_card.setProperty("class", "card")
+        sgs_lay = QVBoxLayout(sg_section_card); sgs_lay.setContentsMargins(16, 14, 16, 14); sgs_lay.setSpacing(12)
+
+        sg_top = QHBoxLayout()
+        self.lbl_sg_count = QLabel("🎯 TARGETED SAVINGS GOALS & WISHLIST", self)
+        self.lbl_sg_count.setProperty("class", "h3")
+        sg_top.addWidget(self.lbl_sg_count)
+        sg_top.addStretch()
+        btn_add_sg_inline = QPushButton("+ Add Goal", self)
+        btn_add_sg_inline.setStyleSheet("background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 11px;")
+        btn_add_sg_inline.clicked.connect(self.open_savings_goal_dialog)
+        sg_top.addWidget(btn_add_sg_inline)
+        sgs_lay.addLayout(sg_top)
+
+        self.savings_cards_area = QWidget(self)
+        self.savings_cards_lay = QGridLayout(self.savings_cards_area)
+        self.savings_cards_lay.setSpacing(12)
+        sgs_lay.addWidget(self.savings_cards_area)
+        main_lay.addWidget(sg_section_card)
+
+        # 5. Roommate & Group Expense Splitter Section
+        ge_card = QFrame(self); ge_card.setProperty("class", "card")
+        gec_lay = QVBoxLayout(ge_card); gec_lay.setContentsMargins(16, 14, 16, 14); gec_lay.setSpacing(10)
+        ge_hdr = QHBoxLayout()
+        ge_hdr.addWidget(QLabel("🧾 ROOMMATE & GROUP EXPENSE SPLITTER", self))
+        ge_hdr.addStretch()
+        btn_split_inline = QPushButton("+ Split Bill", self)
+        btn_split_inline.setStyleSheet("background: rgba(99, 102, 241, 0.2); border: 1px solid #6366f1; color: #818cf8; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 11px;")
+        btn_split_inline.clicked.connect(self.open_group_expense_dialog)
+        ge_hdr.addWidget(btn_split_inline)
+        gec_lay.addLayout(ge_hdr)
 
         self.ge_table = QTableWidget(self)
         self.ge_table.setColumnCount(6)
         self.ge_table.setHorizontalHeaderLabels(["Date", "Title / Bill", "Total Bill", "Paid By", "Share Per Person", "Actions"])
         self.ge_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.ge_table.setFixedHeight(110)
+        self.ge_table.setMinimumHeight(140)
+        self.ge_table.setMaximumHeight(220)
         gec_lay.addWidget(self.ge_table)
-        tc_lay.addWidget(ge_card)
+        main_lay.addWidget(ge_card)
 
-        sg_header = QLabel("🎯 TARGETED SAVINGS GOALS & WISHLIST", self); sg_header.setProperty("class", "h3")
-        tc_lay.addWidget(sg_header)
+        # 6. Transaction Ledger History Section
+        ledger_card = QFrame(self); ledger_card.setProperty("class", "card")
+        lc_lay = QVBoxLayout(ledger_card); lc_lay.setContentsMargins(16, 14, 16, 14); lc_lay.setSpacing(10)
 
-        self.savings_cards_area = QWidget(self)
-        self.savings_cards_lay = QGridLayout(self.savings_cards_area)
-        tc_lay.addWidget(self.savings_cards_area)
+        lc_hdr = QHBoxLayout()
+        lbl_ledger = QLabel("💰 TRANSACTION LEDGER & CASH FLOW LOGS", self)
+        lbl_ledger.setProperty("class", "h3")
+        lc_hdr.addWidget(lbl_ledger)
+        lc_hdr.addStretch()
 
-        graph_card = QFrame(self); graph_card.setProperty("class", "card")
-        gc_lay = QVBoxLayout(graph_card); gc_lay.setContentsMargins(10, 10, 10, 10)
+        self.lbl_fin_summary_badge = QLabel(self)
+        self.lbl_fin_summary_badge.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: bold;")
+        lc_hdr.addWidget(self.lbl_fin_summary_badge)
+        lc_lay.addLayout(lc_hdr)
 
-        self.finance_canvas = FinanceChartCanvas(self, width=9, height=2.8, dpi=100)
-        gc_lay.addWidget(self.finance_canvas)
-        tc_lay.addWidget(graph_card)
+        filter_row = QHBoxLayout(); filter_row.setSpacing(8)
+        self.fin_search = QLineEdit(self)
+        self.fin_search.setPlaceholderText("🔍 Search transactions by description or category...")
+        self.fin_search.textChanged.connect(self.refresh_finance_table)
+        filter_row.addWidget(self.fin_search, stretch=3)
 
-        top_scroll.setWidget(top_content)
-        splitter.addWidget(top_scroll)
+        self.fin_type_filter = QComboBox(self)
+        self.fin_type_filter.addItems(["All Types", "Income Only", "Expense Only"])
+        self.fin_type_filter.currentIndexChanged.connect(self.refresh_finance_table)
+        filter_row.addWidget(self.fin_type_filter, stretch=1)
 
-        # Bottom Panel: Transaction Ledger Table
-        bot_w = QWidget()
-        bot_lay = QVBoxLayout(bot_w); bot_lay.setContentsMargins(0, 0, 0, 0); bot_lay.setSpacing(6)
-        bot_lay.addWidget(QLabel("💰 TRANSACTION LEDGER (Drag divider above to adjust size ratio)", self))
+        self.fin_cat_filter = QComboBox(self)
+        self.fin_cat_filter.addItem("All Categories")
+        cats = ["Food & Dining", "Transport & Transit", "Academics & Books", "Entertainment", "Personal Supplies", "Monthly Allowance", "Miscellaneous"]
+        self.fin_cat_filter.addItems(cats)
+        self.fin_cat_filter.currentIndexChanged.connect(self.refresh_finance_table)
+        filter_row.addWidget(self.fin_cat_filter, stretch=1)
 
-        self.fin_search = QLineEdit(self); self.fin_search.setPlaceholderText("Search transaction description or category..."); self.fin_search.textChanged.connect(self.refresh_finance_table)
-        bot_lay.addWidget(self.fin_search)
+        lc_lay.addLayout(filter_row)
 
         self.fin_table = QTableWidget(self)
         self.fin_table.setColumnCount(6)
         self.fin_table.setHorizontalHeaderLabels(["Date", "Type", "Category", "Description", "Amount (₹)", "Actions"])
         self.fin_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        bot_lay.addWidget(self.fin_table)
+        self.fin_table.setMinimumHeight(280)
+        lc_lay.addWidget(self.fin_table)
 
-        splitter.addWidget(bot_w)
-        splitter.setSizes([380, 420])
+        main_lay.addWidget(ledger_card)
 
-        main_lay.addWidget(splitter)
+        scroll.setWidget(content)
+        v_lay.addWidget(scroll)
         self.views_stack.addWidget(view)
 
     def open_group_expense_dialog(self):
@@ -2893,7 +3032,7 @@ class StuntMainWindow(QMainWindow):
         self.refresh_badges_and_xp()
         self.refresh_dash_schedule()
 
-        self.finance_canvas.update_charts(self.data['finances'])
+        self.finance_canvas.update_charts(self.data['finances'], self.profile)
 
     def refresh_dash_schedule(self):
         if not hasattr(self, 'dash_sched_content_lay'):
@@ -3145,8 +3284,9 @@ class StuntMainWindow(QMainWindow):
             self.ge_table.setCellWidget(row, 5, btn_del)
 
     def delete_ge(self, geid):
-        db.delete_group_expense(geid)
-        self.refresh_all_views()
+        if QMessageBox.question(self, "Confirm Delete", "Are you sure you want to delete this group expense record?") == QMessageBox.StandardButton.Yes:
+            db.delete_group_expense(geid)
+            self.refresh_all_views()
 
     # SYLLABUS TABLE
     def refresh_syllabus_table(self):
@@ -3446,46 +3586,108 @@ class StuntMainWindow(QMainWindow):
             if item.widget(): item.widget().setParent(None)
 
         savings = self.data.get('savingsGoals', [])
+        if hasattr(self, 'lbl_sg_count') and self.lbl_sg_count:
+            self.lbl_sg_count.setText(f"🎯 TARGETED SAVINGS GOALS & WISHLIST ({len(savings)})")
+
         if not savings:
-            lbl_empty = QLabel("No savings goals created yet. Click '+ New Savings Goal' to add items you want to save for!", self)
-            lbl_empty.setStyleSheet("color: #64748b; font-style: italic;")
+            lbl_empty = QLabel("No savings goals created yet. Click '+ Add Goal' to track purchases or targets you want to save for!", self)
+            lbl_empty.setStyleSheet("color: #64748b; font-style: italic; padding: 18px;")
             self.savings_cards_lay.addWidget(lbl_empty, 0, 0)
             return
 
         for idx, sg in enumerate(savings):
-            target = max(1.0, sg['targetAmount'])
-            saved = sg['currentSaved']
+            target = max(1.0, float(sg.get('targetAmount', 1.0)))
+            saved = float(sg.get('currentSaved', 0.0))
             pct = min(100.0, (saved / target) * 100.0)
+            rem = max(0.0, target - saved)
+            is_completed = (saved >= target)
 
-            card = QFrame(self); card.setProperty("class", "card")
+            card = QFrame(self)
+            card.setProperty("class", "card")
+            card.setStyleSheet("""
+                QFrame.card {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(30, 41, 59, 0.75), stop:1 rgba(15, 23, 42, 0.85));
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 12px;
+                    padding: 14px;
+                }
+                QFrame.card:hover {
+                    border: 1px solid rgba(99, 102, 241, 0.45);
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(30, 41, 59, 0.9), stop:1 rgba(15, 23, 42, 0.95));
+                }
+            """)
             c_lay = QVBoxLayout(card)
+            c_lay.setContentsMargins(14, 12, 14, 12)
+            c_lay.setSpacing(10)
 
+            # Top row: Title + Category pill
             hdr = QHBoxLayout()
-            hdr.addWidget(QLabel(f"🎯 <b>{sg['title']}</b> ({sg['category']})", self))
+            icon = "🎉" if is_completed else "🎯"
+            lbl_title = QLabel(f"{icon} <b>{sg.get('title', 'Untitled')}</b>", self)
+            lbl_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #f8fafc;")
+            hdr.addWidget(lbl_title)
             hdr.addStretch()
 
-            lbl_date = QLabel(f"Target: {sg['targetDate']}", self); lbl_date.setStyleSheet("font-size: 11px; color: #94a3b8;")
-            hdr.addWidget(lbl_date)
+            cat = sg.get('category', 'General')
+            lbl_cat = QLabel(f" {cat} ", self)
+            lbl_cat.setStyleSheet("background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 6px; font-size: 10px; font-weight: bold; padding: 2px 8px;")
+            hdr.addWidget(lbl_cat)
             c_lay.addLayout(hdr)
 
-            pbar = QProgressBar(self); pbar.setFixedHeight(8); pbar.setValue(int(pct))
+            # Target date & remaining row
+            date_str = sg.get('targetDate', 'No Deadline')
+            info_lay = QHBoxLayout()
+            lbl_date = QLabel(f"📅 Target: <b>{date_str}</b>", self)
+            lbl_date.setStyleSheet("font-size: 11px; color: #94a3b8;")
+            info_lay.addWidget(lbl_date)
+            info_lay.addStretch()
+
+            rem_text = "🎉 Goal Achieved!" if is_completed else f"Remaining: ₹{rem:,.0f}"
+            lbl_rem = QLabel(rem_text, self)
+            lbl_rem.setStyleSheet("font-size: 11px; font-weight: bold; color: #10b981;" if is_completed else "font-size: 11px; color: #f59e0b;")
+            info_lay.addWidget(lbl_rem)
+            c_lay.addLayout(info_lay)
+
+            # Custom styled progress bar
+            pbar = QProgressBar(self)
+            pbar.setFixedHeight(8)
+            pbar.setTextVisible(False)
+            pbar.setValue(int(pct))
+            pbar_color = "#10b981" if is_completed else "#6366f1"
+            pbar_gradient_end = "#34d399" if is_completed else "#38bdf8"
+            pbar.setStyleSheet(f"""
+                QProgressBar {{
+                    background-color: rgba(255, 255, 255, 0.08);
+                    border: none;
+                    border-radius: 4px;
+                }}
+                QProgressBar::chunk {{
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {pbar_color}, stop:1 {pbar_gradient_end});
+                    border-radius: 4px;
+                }}
+            """)
             c_lay.addWidget(pbar)
 
+            # Bottom metrics & action buttons
             met_lay = QHBoxLayout()
-            lbl_amt = QLabel(f"Saved: <b>₹{saved:,.0f}</b> / ₹{target:,.0f} ({pct:.1f}%)", self)
-            lbl_amt.setStyleSheet("color: #10b981;" if pct >= 100 else "color: #0ea5e9;")
+            lbl_amt = QLabel(f"Saved: <b style='color: #ffffff;'>₹{saved:,.0f}</b> / ₹{target:,.0f} <span style='color: {'#10b981' if is_completed else '#38bdf8'}; font-weight: bold;'>({pct:.1f}%)</span>", self)
+            lbl_amt.setStyleSheet("font-size: 12px; color: #cbd5e1;")
             met_lay.addWidget(lbl_amt)
             met_lay.addStretch()
 
-            btn_dep = QPushButton("💵 Deposit Funds", self); btn_dep.setProperty("class", "success")
+            btn_dep = QPushButton("💵 Deposit", self)
+            btn_dep.setStyleSheet("background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 11px;")
             btn_dep.clicked.connect(lambda checked, item=sg: self.open_deposit_dialog(item))
             met_lay.addWidget(btn_dep)
 
-            btn_edit = QPushButton("Edit", self)
+            btn_edit = QPushButton("✏️ Edit", self)
+            btn_edit.setStyleSheet("background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 11px;")
             btn_edit.clicked.connect(lambda checked, item=sg: self.open_savings_goal_dialog(item))
             met_lay.addWidget(btn_edit)
 
-            btn_del = QPushButton("Delete", self); btn_del.setProperty("class", "danger")
+            btn_del = QPushButton("🗑️", self)
+            btn_del.setStyleSheet("background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); color: #f43f5e; border-radius: 6px; padding: 4px 8px; font-size: 11px;")
+            btn_del.setToolTip("Delete Goal")
             btn_del.clicked.connect(lambda checked, sgid=sg['id']: self.delete_savings_goal(sgid))
             met_lay.addWidget(btn_del)
 
@@ -3493,12 +3695,21 @@ class StuntMainWindow(QMainWindow):
             self.savings_cards_lay.addWidget(card, idx // 2, idx % 2)
 
     def open_deposit_dialog(self, sg_item):
-        dlg = QDialog(self); dlg.setWindowTitle(f"Deposit Funds to '{sg_item['title']}'"); dlg.setFixedWidth(340)
+        dlg = QDialog(self); dlg.setWindowTitle(f"Deposit Funds to '{sg_item['title']}'"); dlg.setFixedWidth(360)
         lay = QVBoxLayout(dlg)
+        lay.setSpacing(12)
 
-        lay.addWidget(QLabel(f"Target: ₹{sg_item['targetAmount']:,.0f} | Currently Saved: ₹{sg_item['currentSaved']:,.0f}", dlg))
+        info_box = QFrame(dlg)
+        info_box.setStyleSheet("background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 10px;")
+        ib_lay = QVBoxLayout(info_box)
+        ib_lay.addWidget(QLabel(f"🎯 <b>{sg_item['title']}</b> ({sg_item.get('category', 'Savings')})", dlg))
+        ib_lay.addWidget(QLabel(f"Target: ₹{sg_item['targetAmount']:,.0f} | Currently Saved: <b style='color:#10b981;'>₹{sg_item['currentSaved']:,.0f}</b>", dlg))
+        rem = max(0.0, sg_item['targetAmount'] - sg_item['currentSaved'])
+        ib_lay.addWidget(QLabel(f"Remaining: ₹{rem:,.0f}", dlg))
+        lay.addWidget(info_box)
 
         amt_in = QLineEdit(dlg); amt_in.setPlaceholderText("Enter deposit amount (₹)...")
+        amt_in.setStyleSheet("font-size: 14px; padding: 8px;")
         lay.addWidget(QLabel("Deposit Amount (₹):", dlg)); lay.addWidget(amt_in)
 
         btn_save = QPushButton("Confirm Deposit", dlg); btn_save.setProperty("class", "primary")
@@ -3507,11 +3718,14 @@ class StuntMainWindow(QMainWindow):
         def save():
             try:
                 dep = float(amt_in.text())
+                if dep <= 0:
+                    QMessageBox.warning(self, "Invalid Amount", "Deposit amount must be greater than zero.")
+                    return
                 sg_item['currentSaved'] += dep
                 db.save_savings_goal(sg_item)
 
                 db.save_finance({
-                    'id': f"fin-{int(datetime.now().timestamp())}",
+                    'id': f"fin-{int(datetime.now().timestamp() * 1000)}",
                     'type': 'Expense',
                     'category': 'Personal Supplies',
                     'amount': dep,
@@ -3528,7 +3742,7 @@ class StuntMainWindow(QMainWindow):
                 else:
                     self.send_notification("Savings Updated 💰", f"Added ₹{dep:,.0f} to '{sg_item['title']}'")
             except ValueError:
-                QMessageBox.warning(self, "Invalid Amount", "Please enter a valid number.")
+                QMessageBox.warning(self, "Invalid Amount", "Please enter a valid numeric amount.")
 
         btn_save.clicked.connect(save)
         dlg.exec()
@@ -3766,34 +3980,131 @@ class StuntMainWindow(QMainWindow):
             db.delete_task(tid)
             self.refresh_all_views()
 
-    # FINANCE TABLE
+    # FINANCE TABLE (With Live KPI Metrics, Type/Category Filtering & Styled Ledger)
     def refresh_finance_table(self):
-        query = self.fin_search.text().lower() if hasattr(self, 'fin_search') else ""
-        fin = [f for f in self.data['finances'] if not query or query in f['desc'].lower() or query in f['category'].lower()]
+        all_fin = self.data.get('finances', [])
+        all_sg = self.data.get('savingsGoals', [])
 
-        self.fin_table.setRowCount(len(fin))
-        for row, f in enumerate(fin):
-            self.fin_table.setItem(row, 0, QTableWidgetItem(f['date']))
-            self.fin_table.setItem(row, 1, QTableWidgetItem(f['type']))
-            self.fin_table.setItem(row, 2, QTableWidgetItem(f['category']))
-            self.fin_table.setItem(row, 3, QTableWidgetItem(f['desc']))
-            self.fin_table.setItem(row, 4, QTableWidgetItem(f"₹{f['amount']:,.0f}"))
+        # 1. Update KPI HUD Metrics
+        tot_inc = sum(float(f.get('amount', 0)) for f in all_fin if f.get('type') == 'Income')
+        tot_exp = sum(float(f.get('amount', 0)) for f in all_fin if f.get('type') == 'Expense')
+        net_bal = tot_inc - tot_exp
+        tot_sav = sum(float(sg.get('currentSaved', 0)) for sg in all_sg)
 
+        if hasattr(self, 'lbl_fin_inc') and self.lbl_fin_inc:
+            self.lbl_fin_inc.setText(f"₹{tot_inc:,.0f}")
+        if hasattr(self, 'lbl_fin_inc_sub') and self.lbl_fin_inc_sub:
+            inc_count = sum(1 for f in all_fin if f.get('type') == 'Income')
+            self.lbl_fin_inc_sub.setText(f"{inc_count} credit receipts")
+
+        if hasattr(self, 'lbl_fin_exp') and self.lbl_fin_exp:
+            self.lbl_fin_exp.setText(f"₹{tot_exp:,.0f}")
+        if hasattr(self, 'lbl_fin_exp_sub') and self.lbl_fin_exp_sub:
+            budget_cap = self.profile.get('monthlyBudgetCap', 0) if hasattr(self, 'profile') and self.profile else 0
+            if budget_cap and budget_cap > 0:
+                burn_pct = (tot_exp / budget_cap) * 100.0
+                self.lbl_fin_exp_sub.setText(f"{burn_pct:.0f}% of ₹{budget_cap:,.0f} budget cap")
+            else:
+                exp_count = sum(1 for f in all_fin if f.get('type') == 'Expense')
+                self.lbl_fin_exp_sub.setText(f"{exp_count} debit expenses")
+
+        if hasattr(self, 'lbl_fin_bal') and self.lbl_fin_bal:
+            self.lbl_fin_bal.setText(f"₹{net_bal:,.0f}")
+            if net_bal < 0:
+                self.lbl_fin_bal.setStyleSheet("font-size: 22px; font-weight: bold; color: #f43f5e;")
+            else:
+                self.lbl_fin_bal.setStyleSheet("font-size: 22px; font-weight: bold; color: #0ea5e9;")
+        if hasattr(self, 'lbl_fin_bal_sub') and self.lbl_fin_bal_sub:
+            status_text = "⚠️ Deficit warning" if net_bal < 0 else "✅ Healthy liquidity"
+            self.lbl_fin_bal_sub.setText(status_text)
+
+        if hasattr(self, 'lbl_fin_sav') and self.lbl_fin_sav:
+            self.lbl_fin_sav.setText(f"₹{tot_sav:,.0f}")
+        if hasattr(self, 'lbl_fin_sav_sub') and self.lbl_fin_sav_sub:
+            self.lbl_fin_sav_sub.setText(f"Across {len(all_sg)} active goals")
+
+        # 2. Filter Transactions
+        query = self.fin_search.text().strip().lower() if hasattr(self, 'fin_search') and self.fin_search else ""
+        type_filter = self.fin_type_filter.currentText() if hasattr(self, 'fin_type_filter') and self.fin_type_filter else "All Types"
+        cat_filter = self.fin_cat_filter.currentText() if hasattr(self, 'fin_cat_filter') and self.fin_cat_filter else "All Categories"
+
+        filtered_fin = []
+        for f in all_fin:
+            f_type = f.get('type', '')
+            f_cat = f.get('category', '')
+            f_desc = f.get('desc', '')
+
+            if type_filter == "Income Only" and f_type != "Income":
+                continue
+            if type_filter == "Expense Only" and f_type != "Expense":
+                continue
+            if cat_filter != "All Categories" and f_cat != cat_filter:
+                continue
+            if query and query not in f_desc.lower() and query not in f_cat.lower() and query not in f_type.lower():
+                continue
+
+            filtered_fin.append(f)
+
+        if hasattr(self, 'lbl_fin_summary_badge') and self.lbl_fin_summary_badge:
+            self.lbl_fin_summary_badge.setText(f"Showing {len(filtered_fin)} of {len(all_fin)} transactions")
+
+        # 3. Populate Table
+        self.fin_table.setRowCount(len(filtered_fin))
+        for row, f in enumerate(filtered_fin):
+            # Date
+            item_date = QTableWidgetItem(f.get('date', ''))
+            item_date.setForeground(QColor("#94a3b8"))
+            self.fin_table.setItem(row, 0, item_date)
+
+            # Type
+            f_type = f.get('type', 'Expense')
+            item_type = QTableWidgetItem(f"  {f_type}  ")
+            if f_type == "Income":
+                item_type.setForeground(QColor("#10b981"))
+            else:
+                item_type.setForeground(QColor("#f43f5e"))
+            self.fin_table.setItem(row, 1, item_type)
+
+            # Category
+            self.fin_table.setItem(row, 2, QTableWidgetItem(f.get('category', '')))
+
+            # Description
+            self.fin_table.setItem(row, 3, QTableWidgetItem(f.get('desc', '')))
+
+            # Amount
+            amt = float(f.get('amount', 0))
+            if f_type == "Income":
+                amt_str = f"+₹{amt:,.0f}"
+                item_amt = QTableWidgetItem(amt_str)
+                item_amt.setForeground(QColor("#10b981"))
+            else:
+                amt_str = f"-₹{amt:,.0f}"
+                item_amt = QTableWidgetItem(amt_str)
+                item_amt.setForeground(QColor("#f43f5e"))
+            item_amt.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.fin_table.setItem(row, 4, item_amt)
+
+            # Actions
             act_widget = QWidget(self)
-            act_lay = QHBoxLayout(act_widget); act_lay.setContentsMargins(0, 0, 0, 0); act_lay.setSpacing(4)
+            act_lay = QHBoxLayout(act_widget)
+            act_lay.setContentsMargins(4, 2, 4, 2)
+            act_lay.setSpacing(6)
 
-            btn_edit = QPushButton("Edit", self)
-            btn_edit.clicked.connect(lambda checked, item=f: self.open_finance_dialog(item['type'], item))
+            btn_edit = QPushButton("✏️ Edit", self)
+            btn_edit.setStyleSheet("background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; padding: 3px 8px; font-size: 11px;")
+            btn_edit.clicked.connect(lambda checked, item=f: self.open_finance_dialog(item.get('type', 'Expense'), item))
             act_lay.addWidget(btn_edit)
 
-            btn_del = QPushButton("Delete", self); btn_del.setProperty("class", "danger")
+            btn_del = QPushButton("🗑️", self)
+            btn_del.setStyleSheet("background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); color: #f43f5e; border-radius: 4px; padding: 3px 6px; font-size: 11px;")
+            btn_del.setToolTip("Delete Transaction")
             btn_del.clicked.connect(lambda checked, fid=f['id']: self.delete_fin(fid))
             act_lay.addWidget(btn_del)
 
             self.fin_table.setCellWidget(row, 5, act_widget)
 
     def delete_fin(self, fid):
-        if QMessageBox.question(self, "Confirm Delete", "Delete transaction?") == QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, "Confirm Delete", "Are you sure you want to delete this transaction record?") == QMessageBox.StandardButton.Yes:
             db.delete_finance(fid)
             self.refresh_all_views()
 
