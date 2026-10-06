@@ -3,44 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STUNT — The Universal Cross-Platform Campus Operating System</title>
-  <meta name="description" content="On your phone in class. On your laptop at your desk. Live sync attendance bunk predictor, smart timetables, peer bill splitting, previous year solved papers (PYQs), and JARVIS AI academic copilot.">
+  <title>STUNT — The Student Operating System by Akul Bhatnagar</title>
+  <meta name="description" content="A private, sovereign campus workspace engineered by a student for students. Attendance bunk math, lecture timetables, roommate expense splitting, and sovereign J.A.R.V.I.S. Mark 58 integration.">
   
-  <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="assets/stunt_icon.ico">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <!-- Custom Styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <!-- ==========================================================================
-       Glassmorphic Navbar
+       Minimalist Navbar
        ========================================================================== -->
   <header class="navbar">
-    <div class="container nav-container">
+    <div class="container nav-wrap">
       <a href="#" class="nav-brand">
-        <img src="assets/RedandBlackGlitchcoreStuntLogo.png" alt="STUNT Logo" class="brand-logo-img">
-        <span class="brand-text">STUNT</span>
-        <span class="brand-badge">CAMPUS OS</span>
+        <img src="assets/RedandBlackGlitchcoreStuntLogo.png" alt="STUNT" class="nav-logo">
+        <span class="nav-title">STUNT</span>
+        <span class="nav-tag">v2.5</span>
       </a>
 
-      <ul class="nav-links">
-        <li><a href="#simulator" class="nav-link">Live Sync</a></li>
-        <li><a href="#demos" class="nav-link">Interactive Demos</a></li>
-        <li><a href="#pyq-vault" class="nav-link">PYQ Vault</a></li>
-        <li><a href="#pricing" class="nav-link">Plans</a></li>
-        <li><a href="#download" class="nav-link">Downloads</a></li>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="#manifesto">Why I Built This</a></li>
+        <li class="nav-item"><a href="#tools">Core Tools</a></li>
+        <li class="nav-item"><a href="#jarvis">JARVIS Mark 58</a></li>
+        <li class="nav-item"><a href="#sovereignty">Privacy Charter</a></li>
+        <li class="nav-item"><a href="#download">Downloads</a></li>
       </ul>
 
       <div class="nav-actions">
-        <a href="#download" class="btn btn-secondary btn-sm">Get App</a>
-        <button class="btn btn-primary btn-sm open-reg-btn">Create Account</button>
+        <button class="btn btn-outline btn-sm open-privacy-modal-btn">🛡️ Security Charter</button>
+        <button class="btn btn-primary btn-sm open-reg-btn">Get Started</button>
       </div>
     </div>
   </header>
@@ -51,589 +49,356 @@
   <section class="hero">
     <div class="container">
       <div class="hero-pill">
-        <span>⚡ WhatsApp-Style Multi-Device Sync</span>
-        <span style="color: #64748b;">•</span>
-        <span>iOS • Android • macOS • Windows • Web</span>
+        <span class="hero-pill-dot"></span>
+        <span>Built by Akul • NMIMS Mumbai BBA IB • Local-First Architecture</span>
       </div>
 
-      <h1 class="hero-title">
-        The All-In-One<br>
-        <span class="hero-title-highlight">Campus Operating System</span>
+      <h1 class="hero-h1">
+        College portals are broken.<br>
+        <span>I built a better way to survive the semester.</span>
       </h1>
 
-      <p class="hero-subtitle">
-        <b>On your phone in class. On your laptop at your desk.</b><br>
-        Real-time attendance bunk math, dynamic timetable clash alerts, roommate bill splitting, previous year solved papers (PYQs), and JARVIS AI academic assistance.
+      <p class="hero-lead">
+        One clean, sovereign desktop and mobile workspace for your mandatory 75% attendance math, daily lecture timetable, roommate shared bills, and local J.A.R.V.I.S. Mark 58 AI assistance. Zero ads. Zero data harvesting.
       </p>
 
-      <div class="hero-cta-group">
-        <button class="btn btn-primary btn-lg open-reg-btn">
-          <span>🚀 Create Free Student Account</span>
-        </button>
-        <a href="#simulator" class="btn btn-secondary btn-lg">
-          <span>⚡ Try Live Device Simulator</span>
+      <div class="hero-btn-row">
+        <a href="#download" class="btn btn-primary btn-lg">Download STUNT.exe</a>
+        <a href="#tools" class="btn btn-secondary btn-lg">Explore Tools</a>
+        <a href="https://github.com/bhatnagarakul5-debug/S.T.U.N.T-Student-Tracker-for-Unified-Navigation-Tasks" target="_blank" class="btn btn-outline btn-lg">GitHub Source</a>
+      </div>
+
+      <!-- Founder Manifesto Box -->
+      <div id="manifesto" class="manifesto-card">
+        <div class="manifesto-header">
+          <div class="manifesto-avatar">AB</div>
+          <div>
+            <div class="manifesto-author">Akul Bhatnagar</div>
+            <div class="manifesto-creds">Student Developer • NMIMS Mumbai (BBA International Business)</div>
+          </div>
+        </div>
+        <div class="manifesto-body">
+          <p>
+            "In my second year of college, keeping track of academic life was an absolute headache. Our university ERP portal crashed during exam hall-ticket release, faculty attendance entries had random errors, and tracking whether I could safely miss a lecture to prepare for an economics presentation meant digging through scattered notes on my phone. On top of that, splitting Swiggy orders and Wi-Fi bills with roommates on WhatsApp groups was a chaotic mess."
+          </p>
+          <p>
+            "I didn't want another venture-backed student app that shows ads, tracks my location, or sells my data to brokers. I wanted a fast, private, keyboard-driven operating system that lives on my laptop and phone, keeps me above the 75% eligibility line, and works 100% offline. That is why I built <b>STUNT</b>."
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Interactive Tools Section (Linear-grade, clean, precision)
+       ========================================================================== -->
+  <section id="tools" class="section">
+    <div class="container">
+      <div class="section-label">01 // PRECISION ACADEMIC UTILITIES</div>
+      <h2 class="section-head">Tools that do exactly what you need.</h2>
+      <p class="section-desc">No corporate buzzwords. Just fast, deterministic math and clean tools built for real college semesters.</p>
+
+      <div class="feature-grid">
+        <!-- 1. Bunk Safety Forecaster -->
+        <div class="feature-box">
+          <div class="feature-box-top">
+            <span class="feature-tag">MATH ENGINE</span>
+            <span style="font-size: 11px; color: var(--text-tertiary);">Integer Precision</span>
+          </div>
+          <h3 class="feature-title">75% Attendance & Bunk Forecaster</h3>
+          <p class="feature-desc">Never get debarred by surprise. Calculates exactly how many lectures you can safely miss, or how many you must attend consecutively to restore your eligibility.</p>
+
+          <div class="tool-surface">
+            <div class="tool-row">
+              <span>Classes Attended</span>
+              <span id="bunk-val-att">32</span>
+            </div>
+            <input type="range" id="bunk-slider-att" class="slider-input" min="1" max="60" value="32">
+
+            <div class="tool-row">
+              <span>Total Classes Held</span>
+              <span id="bunk-val-tot">38</span>
+            </div>
+            <input type="range" id="bunk-slider-tot" class="slider-input" min="5" max="60" value="38">
+
+            <div class="tool-row">
+              <span>Minimum Eligibility Required</span>
+              <span id="bunk-val-req">75%</span>
+            </div>
+            <input type="range" id="bunk-slider-req" class="slider-input" min="65" max="85" value="75">
+
+            <div id="bunk-result-pill" class="status-badge safe">
+              Calculating status...
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Lecture Schedule Matrix -->
+        <div class="feature-box">
+          <div class="feature-box-top">
+            <span class="feature-tag">TIMETABLE</span>
+            <span style="font-size: 11px; color: var(--text-tertiary);">Clash Detection</span>
+          </div>
+          <h3 class="feature-title">Dynamic Timetable & Room Finder</h3>
+          <p class="feature-desc">Know which lecture hall to run to without opening messy PDF schedules. Automatically alerts you 15 minutes before class and detects schedule overlaps.</p>
+
+          <div class="tool-surface">
+            <div class="tt-tabs">
+              <button class="tt-tab active" data-day="Mon">Mon</button>
+              <button class="tt-tab" data-day="Tue">Tue</button>
+              <button class="tt-tab" data-day="Wed">Wed</button>
+              <button class="tt-tab" data-day="Thu">Thu</button>
+              <button class="tt-tab" data-day="Fri">Fri</button>
+            </div>
+
+            <div id="tt-schedule-container" class="tt-rows">
+              <!-- Rendered via app.js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Roommate Bill Splitter -->
+        <div class="feature-box">
+          <div class="feature-box-top">
+            <span class="feature-tag">LEDGER</span>
+            <span style="font-size: 11px; color: var(--text-tertiary);">0% Fees • Direct UPI</span>
+          </div>
+          <h3 class="feature-title">Hostel & Roommate Bill Splitter</h3>
+          <p class="feature-desc">Split flat rent, Wi-Fi subscriptions, and late-night food deliveries with zero third-party wallet middle-men. Generates 1-click WhatsApp text and direct UPI links.</p>
+
+          <div class="tool-surface">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div>
+                <span style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Total Bill (₹)</span>
+                <input type="number" id="split-input-amt" class="form-input" style="width: 100%;" value="1200">
+              </div>
+              <div>
+                <span style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Number of People</span>
+                <input type="number" id="split-input-ppl" class="form-input" style="width: 100%;" value="4">
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 6px; border-top: 1px solid var(--border);">
+              <span style="font-size: 12px; color: var(--text-secondary);">Share Per Person:</span>
+              <span id="split-output-share" style="font-size: 20px; font-weight: 700; color: #ffffff; font-family: var(--font-mono);">₹300</span>
+            </div>
+
+            <button id="split-btn-upi" class="btn btn-secondary btn-sm" style="width: 100%;">
+              💬 Copy WhatsApp Payment Request
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       J.A.R.V.I.S. Mark 58 (Apex Core) Integration Showcase
+       ========================================================================== -->
+  <section id="jarvis" class="section">
+    <div class="container">
+      <div class="section-label">02 // SOVEREIGN AI COMPANION</div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px; margin-bottom: 8px;">
+        <h2 class="section-head" style="margin-bottom: 0;">J.A.R.V.I.S. Mark 58 (Apex Core)</h2>
+        <a href="https://github.com/bhatnagarakul5-debug/JARVIS-MARK-LVIII" target="_blank" class="btn btn-outline btn-sm">
+          <span>View JARVIS-MARK-LVIII on GitHub ↗</span>
         </a>
       </div>
+      <p class="section-desc">
+        Not a generic wrapper. JARVIS Mark 58 is Akul's custom sovereign AI system, integrated directly into STUNT via an isolated local IPC bridge (<code style="font-family: var(--font-mono); color: #a78bfa;">actions/stunt_bridge.py</code>).
+      </p>
 
-      <div class="hero-stats">
-        <div class="hero-stat-item">
-          <span class="hero-stat-val">75%</span>
-          <span class="hero-stat-lbl">Smart Bunk Safety</span>
-        </div>
-        <div class="hero-stat-item">
-          <span class="hero-stat-val">&lt; 50ms</span>
-          <span class="hero-stat-lbl">Multi-Device Sync</span>
-        </div>
-        <div class="hero-stat-item">
-          <span class="hero-stat-val">5+ Years</span>
-          <span class="hero-stat-lbl">Verified PYQ Papers</span>
-        </div>
-        <div class="hero-stat-item">
-          <span class="hero-stat-val">100%</span>
-          <span class="hero-stat-lbl">Offline-First Capable</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       Dual Device Simulator (Phone + Desktop Side-by-Side with Live Sync)
-       ========================================================================== -->
-  <section id="simulator" class="simulator-section container">
-    <div class="simulator-header">
-      <div class="simulator-sync-badge">
-        <span class="pulse-dot"></span>
-        <span>LIVE WEBSOCKET SYNC SIMULATOR</span>
-      </div>
-      <h2 style="font-size: 28px; font-weight: 800; margin: 12px 0 6px 0;">Tap on Mobile $\rightarrow$ See It Reflected on Desktop</h2>
-      <p style="color: var(--text-muted); font-size: 14px;">Interact with the phone buttons below to experience how STUNT keeps your academic day in sync.</p>
-    </div>
-
-    <div class="device-stage">
-      <!-- 1. Mobile Phone (iPhone 16 Pro Style) -->
-      <div class="phone-mockup">
-        <div class="phone-island">
-          <div class="phone-island-cam"></div>
+      <div class="terminal-card">
+        <div class="terminal-bar">
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #eab308;"></div>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></div>
+            <span class="terminal-title" style="margin-left: 8px;">jarvis_core.v58 // stunt_bridge.py [127.0.0.1:IPC]</span>
+          </div>
+          <span style="font-size: 10px; color: #10b981; font-weight: 600;">ACTIVE & LINKED</span>
         </div>
 
-        <div class="phone-screen">
-          <div class="phone-header">
-            <div>
-              <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Campus Mobile</div>
-              <div class="phone-title">Hi, Akul 👋</div>
-            </div>
-            <span class="phone-badge">Sem 3 CSE</span>
-          </div>
-
-          <!-- Phone Attendance Card -->
-          <div class="phone-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-size: 11px; font-weight: bold; color: #94a3b8;">TODAY'S ATTENDANCE</span>
-              <span id="phone-att-pct" style="font-size: 14px; font-weight: 800; color: #10b981;">81.6%</span>
-            </div>
-            <div style="font-size: 11px; color: #cbd5e1; margin-bottom: 10px;">
-              Business Economics • Room 312
-            </div>
-            <button id="btn-phone-att" class="phone-action-btn">
-              📱 Quick Tap: Mark Lecture Present
-            </button>
-          </div>
-
-          <!-- Phone Next Class Card -->
-          <div class="phone-card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 11px; font-weight: bold; color: #94a3b8;">UP NEXT IN 20 MINS</span>
-              <span style="font-size: 10px; background: rgba(6,182,212,0.15); color: #06b6d4; padding: 2px 6px; border-radius: 4px; font-weight: bold;">Room 204</span>
-            </div>
-            <div style="font-size: 13px; font-weight: 700; color: #ffffff; margin-top: 4px;">International Finance</div>
-            <div style="font-size: 11px; color: #94a3b8;">Dr. Sharma • Lecture Hall 204</div>
-          </div>
-
-          <!-- Phone Roommate Split Button -->
-          <div class="phone-card">
-            <div style="font-size: 11px; font-weight: bold; color: #94a3b8; margin-bottom: 6px;">ROOMMATE SPLITTER</div>
-            <button id="btn-phone-split" class="phone-action-btn" style="border-color: #06b6d4; background: rgba(6,182,212,0.15);">
-              🧾 Split ₹600 Lunch with 3 Friends
-            </button>
-          </div>
-
-          <!-- Phone Bottom Navigation Mockup -->
-          <div style="margin-top: auto; display: flex; justify-content: space-around; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 10px; color: #64748b;">
-            <span style="color: #8b5cf6; font-weight: bold;">⚡ Home</span>
-            <span>📅 Classes</span>
-            <span>💰 Money</span>
-            <span>🤖 JARVIS</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. Desktop Laptop (MacBook / Windows Screen) -->
-      <div class="laptop-mockup">
-        <div class="laptop-titlebar">
-          <div class="window-dots">
-            <div class="window-dot dot-red"></div>
-            <div class="window-dot dot-yellow"></div>
-            <div class="window-dot dot-green"></div>
-          </div>
-          <div class="laptop-title">STUNT Campus Studio — Synced with iPhone</div>
-          <div id="desktop-sync-toast" style="font-size: 11px; color: #06b6d4; font-weight: bold; transition: all 0.3s; opacity: 0; transform: translateY(-8px);">
-            ⚡ Live Sync Active
-          </div>
+        <div id="jarvis-output" class="terminal-body">
+          Click an academic prompt below or type your syllabus topic to test JARVIS Mark 58...
         </div>
 
-        <div class="laptop-content">
-          <!-- Desktop Attendance Overview Card -->
-          <div class="desktop-card">
-            <div class="desktop-card-title">
-              <span>Overall Attendance Health</span>
-              <span style="color: #10b981;">Eligible</span>
-            </div>
-            <div id="desktop-att-pct" class="desktop-card-val">81.6% (31/38)</div>
-            <div class="desktop-progress">
-              <div id="desktop-att-progress" class="desktop-progress-chunk" style="width: 81.6%; background: linear-gradient(90deg, #10b981, #06b6d4);"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-top: 8px;">
-              <span>Target: 75%</span>
-              <span style="color: #34d399; font-weight: bold;">+3 Safe Bunks Remaining</span>
-            </div>
-          </div>
-
-          <!-- Desktop Financial Analytics Card -->
-          <div class="desktop-card">
-            <div class="desktop-card-title">
-              <span>Monthly Budget & Balance</span>
-              <span style="color: #06b6d4;">₹12,450 Net</span>
-            </div>
-            <div class="desktop-card-val" style="color: #38bdf8;">₹3,420 Outflow</div>
-            <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
-              Monthly Cap: ₹5,000 (68.4% Burn Rate)
-            </div>
-            <div class="desktop-progress">
-              <div class="desktop-progress-chunk" style="width: 68.4%; background: linear-gradient(90deg, #06b6d4, #f59e0b);"></div>
-            </div>
-          </div>
-
-          <!-- Desktop Live Transactions Feed -->
-          <div class="desktop-card" style="grid-column: span 2;">
-            <div class="desktop-card-title">
-              <span>Live Shared Expense & Activity Feed</span>
-              <span style="font-size: 10px; color: #8b5cf6;">Real-Time WebSockets</span>
-            </div>
-            <div id="desktop-txn-list" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;">
-              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 12px;">
-                <span>🧾 Hostel Wi-Fi Subscription</span>
-                <span style="color: #f43f5e; font-weight: bold;">-₹300 (₹900 split / 3 ppl)</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 12px;">
-                <span>💵 Monthly Parent Allowance</span>
-                <span style="color: #10b981; font-weight: bold;">+₹6,000 (Credited)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       Interactive Feature Demos Section
-       ========================================================================== -->
-  <section id="demos" class="container" style="padding-top: 60px;">
-    <div class="section-title-wrap">
-      <div class="section-tag">Interactive Academic Tools</div>
-      <h2 class="section-title">Built Specially for Student Life</h2>
-      <p class="section-desc">Try out the core algorithms that make STUNT the ultimate campus companion.</p>
-    </div>
-
-    <div class="demos-grid">
-      <!-- 1. Bunk Forecaster -->
-      <div class="demo-card">
-        <div class="demo-card-hdr">
-          <div class="demo-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
-            🎯
-          </div>
-          <span style="font-size: 11px; background: rgba(16,185,129,0.1); color:#34d399; padding: 3px 8px; border-radius: 6px; font-weight: 700;">LIVE MATH</span>
-        </div>
-        <div class="demo-title">Smart Bunk Forecaster</div>
-        <div class="demo-desc">Calculates exactly how many lectures you can skip without falling below the mandatory 75% boundary.</div>
-
-        <div class="bunk-box">
-          <div class="slider-group">
-            <div class="slider-label-row">
-              <span>Classes Attended</span>
-              <span id="bunk-val-att" style="font-weight: 700; color: #fff;">32</span>
-            </div>
-            <input type="range" id="bunk-slider-att" class="bunk-slider" min="1" max="60" value="32">
-          </div>
-
-          <div class="slider-group">
-            <div class="slider-label-row">
-              <span>Total Classes Held</span>
-              <span id="bunk-val-tot" style="font-weight: 700; color: #fff;">38</span>
-            </div>
-            <input type="range" id="bunk-slider-tot" class="bunk-slider" min="5" max="60" value="38">
-          </div>
-
-          <div class="slider-group">
-            <div class="slider-label-row">
-              <span>Minimum Required %</span>
-              <span id="bunk-val-req" style="font-weight: 700; color: #fff;">75%</span>
-            </div>
-            <input type="range" id="bunk-slider-req" class="bunk-slider" min="60" max="85" value="75">
-          </div>
-
-          <div id="bunk-result-pill" class="bunk-result-pill">
-            Calculating...
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. Dynamic Timetable Switcher -->
-      <div class="demo-card">
-        <div class="demo-card-hdr">
-          <div class="demo-icon-wrap" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">
-            📅
-          </div>
-          <span style="font-size: 11px; background: rgba(6,182,212,0.1); color:#38bdf8; padding: 3px 8px; border-radius: 6px; font-weight: 700;">TIMELINE</span>
-        </div>
-        <div class="demo-title">Dynamic Timetable</div>
-        <div class="demo-desc">Select any day to preview daily lecture schedules with room numbers and faculty details.</div>
-
-        <div class="tt-day-tabs">
-          <button class="tt-day-tab active" data-day="Mon">Mon</button>
-          <button class="tt-day-tab" data-day="Tue">Tue</button>
-          <button class="tt-day-tab" data-day="Wed">Wed</button>
-          <button class="tt-day-tab" data-day="Thu">Thu</button>
-          <button class="tt-day-tab" data-day="Fri">Fri</button>
-        </div>
-
-        <div id="tt-schedule-container" class="tt-schedule-list">
-          <!-- Populated by app.js -->
-        </div>
-      </div>
-
-      <!-- 3. Roommate Bill Splitter -->
-      <div class="demo-card">
-        <div class="demo-card-hdr">
-          <div class="demo-icon-wrap" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
-            🧾
-          </div>
-          <span style="font-size: 11px; background: rgba(139,92,246,0.1); color:#c4b5fd; padding: 3px 8px; border-radius: 6px; font-weight: 700;">INSTANT SPLIT</span>
-        </div>
-        <div class="demo-title">Roommate & Group Splitter</div>
-        <div class="demo-desc">Calculate instant per-person splits for hostel Wi-Fi, dinner bills, or travel expenses.</div>
-
-        <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 12px;">
-          <div class="split-input-row">
-            <div>
-              <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Total Bill (₹)</div>
-              <input type="number" id="split-input-amt" class="web-input" value="1200">
-            </div>
-            <div>
-              <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">People Count</div>
-              <input type="number" id="split-input-ppl" class="web-input" value="4">
-            </div>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.08);">
-            <span style="font-size: 13px; color: #94a3b8;">Share Per Person:</span>
-            <span id="split-output-share" style="font-size: 22px; font-weight: 800; color: #10b981;">₹300</span>
-          </div>
-
-          <button id="split-btn-upi" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 8px;">
-            💬 Copy WhatsApp / UPI Request
+        <div class="terminal-chips">
+          <button class="chip-btn" data-prompt="Generate 3 viva questions on International Finance">
+            🎯 Viva Prep (Finance)
+          </button>
+          <button class="chip-btn" data-prompt="Explain DuPont Analysis formula in 2 bullets">
+            📊 DuPont Analysis
+          </button>
+          <button class="chip-btn" data-prompt="Can I safely bunk tomorrow's 9 AM lecture?">
+            ⏰ Safe Bunk Query
           </button>
         </div>
-      </div>
 
-      <!-- 4. JARVIS AI Terminal -->
-      <div class="demo-card">
-        <div class="demo-card-hdr">
-          <div class="demo-icon-wrap" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;">
-            🤖
-          </div>
-          <span style="font-size: 11px; background: rgba(244,63,94,0.1); color:#fb7185; padding: 3px 8px; border-radius: 6px; font-weight: 700;">ACADEMIC AI</span>
-        </div>
-        <div class="demo-title">JARVIS AI Copilot</div>
-        <div class="demo-desc">Exam predictions, formula breakdowns, and instant viva question generation.</div>
-
-        <div class="jarvis-term">
-          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
-            <span style="color: #64748b;">jarvis_core.v2 // connected</span>
-            <span style="color: #10b981;">ONLINE</span>
-          </div>
-          <div id="jarvis-output" class="jarvis-output">
-            Click a prompt below or type your syllabus topic to test JARVIS...
-          </div>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button class="jarvis-prompt-chip btn btn-secondary btn-sm" data-prompt="Generate 3 viva questions on International Finance">
-              🎯 Viva Prep
-            </button>
-            <button class="jarvis-prompt-chip btn btn-secondary btn-sm" data-prompt="What is DuPont Analysis?">
-              📊 DuPont Formula
-            </button>
-          </div>
-          <div class="jarvis-prompt-row">
-            <input type="text" id="jarvis-input" class="web-input" placeholder="Ask JARVIS about your syllabus...">
-            <button id="jarvis-send" class="btn btn-primary btn-sm">Ask</button>
-          </div>
+        <div class="terminal-input-bar">
+          <input type="text" id="jarvis-input" class="terminal-input" placeholder="Type an academic query or command...">
+          <button id="jarvis-send" class="btn btn-secondary btn-sm" style="border-radius: 0; border-left: 1px solid var(--border);">Ask</button>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ==========================================================================
-       Services & Previous Year Solved Papers (PYQ) Marketplace
+       Privacy Policy & Data Sovereignty Charter
        ========================================================================== -->
-  <section id="pyq-vault" class="container" style="padding-top: 60px;">
-    <div class="section-title-wrap">
-      <div class="section-tag">Academic Marketplace</div>
-      <h2 class="section-title">Previous Year Question Vault (PYQs)</h2>
-      <p class="section-desc">Unlock faculty-verified solutions, 5-year past papers, and formula cheat sheets before your exams.</p>
+  <section id="sovereignty" class="section">
+    <div class="container">
+      <div class="section-label">03 // DATA SOVEREIGNTY CHARTER</div>
+      <h2 class="section-head">Your data belongs to you. Period.</h2>
+      <p class="section-desc">Commercial college apps harvest your location and track behavioral patterns. STUNT is engineered on absolute local sovereignty.</p>
+
+      <div class="sovereignty-grid">
+        <div class="sov-card">
+          <div class="sov-icon">🔒</div>
+          <h4 class="sov-title">100% Localhost Isolation</h4>
+          <p class="sov-desc">Internal sockets and JARVIS bridge routines are bound strictly to <code style="font-family: var(--font-mono); color: #fff;">127.0.0.1</code>, making them invisible across public university Wi-Fi.</p>
+        </div>
+
+        <div class="sov-card">
+          <div class="sov-icon">🚫</div>
+          <h4 class="sov-title">Zero Third-Party Telemetry</h4>
+          <p class="sov-desc">No Google Analytics, no advertisement SDKs, and no tracking cookies. STUNT operates cleanly without phoning home.</p>
+        </div>
+
+        <div class="sov-card">
+          <div class="sov-icon">💾</div>
+          <h4 class="sov-title">Local SQLite Storage</h4>
+          <p class="sov-desc">Your grades, attendance logs, and financial transactions live in a local SQLite file (<code style="font-family: var(--font-mono); color: #fff;">stunt_database.db</code>) on your own hard drive.</p>
+        </div>
+
+        <div class="sov-card">
+          <div class="sov-icon">👁️</div>
+          <h4 class="sov-title">Anti-Shoulder Surfer Protocol</h4>
+          <p class="sov-desc">One hotkey (<code style="font-family: var(--font-mono); color: #fff;">Ctrl+Shift+P</code>) instantly obscures sensitive grades and financial numbers when studying in crowded campus libraries.</p>
+        </div>
+      </div>
+
+      <div style="text-align: center;">
+        <button class="btn btn-secondary btn-lg open-privacy-modal-btn">
+          <span>📜 Read Full Privacy Policy & Sovereignty Charter</span>
+        </button>
+      </div>
     </div>
+  </section>
 
-    <div class="marketplace-grid">
-      <!-- Item 1 -->
-      <div class="pyq-card">
-        <div>
-          <div class="pyq-tag">Semester 3 • Finance</div>
-          <div class="pyq-title">International Finance: 5-Year Solved Papers</div>
-          <div class="pyq-sub">Includes 2021–2025 solved university papers, forex arbitrage step-by-step math, and predicted 2026 viva questions.</div>
-        </div>
-        <div class="pyq-price-row">
-          <div>
-            <div style="font-size: 10px; color: #94a3b8;">ONE-TIME UNLOCK</div>
-            <div class="pyq-price">₹49</div>
-          </div>
-          <button class="btn btn-cyan btn-sm open-reg-btn">Unlock Paper</button>
-        </div>
-      </div>
+  <!-- ==========================================================================
+       Download Hub
+       ========================================================================== -->
+  <section id="download" class="section">
+    <div class="container">
+      <div class="section-label">04 // INSTALLATION & BUILDS</div>
+      <h2 class="section-head">Get STUNT on your machine.</h2>
+      <p class="section-desc">Download the standalone binary or clone the repository to run from source.</p>
 
-      <!-- Item 2 -->
-      <div class="pyq-card">
-        <div>
-          <div class="pyq-tag" style="background: rgba(139,92,246,0.15); color: #c4b5fd;">Semester 3 • Economics</div>
-          <div class="pyq-title">Business Economics Exam Master Pack</div>
-          <div class="pyq-sub">Complete macroeconomic models, IS-LM curves, elasticity formulas, and 8 solved previous semester exams.</div>
+      <div class="feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+        <!-- Windows Binary -->
+        <div class="feature-box">
+          <div style="font-size: 28px; margin-bottom: 8px;">🪟</div>
+          <h3 class="feature-title">Windows 10 / 11</h3>
+          <p class="feature-desc">Compiled standalone desktop executable with PyQt6, dark mode styling, and SQLite local engine.</p>
+          <a href="../STUNT.exe" download class="btn btn-primary btn-sm" style="margin-top: auto;">Download STUNT.exe</a>
         </div>
-        <div class="pyq-price-row">
-          <div>
-            <div style="font-size: 10px; color: #94a3b8;">ONE-TIME UNLOCK</div>
-            <div class="pyq-price">₹39</div>
-          </div>
-          <button class="btn btn-primary btn-sm open-reg-btn">Unlock Paper</button>
-        </div>
-      </div>
 
-      <!-- Item 3 -->
-      <div class="pyq-card">
-        <div>
-          <div class="pyq-tag" style="background: rgba(16,185,129,0.15); color: #34d399;">Semester 3 • Management</div>
-          <div class="pyq-title">International Business Strategy Notes</div>
-          <div class="pyq-sub">Handwritten topper case studies, GATT/WTO trade agreements summary, and quick-revision flashcards.</div>
+        <!-- GitHub Source -->
+        <div class="feature-box">
+          <div style="font-size: 28px; margin-bottom: 8px;">⚡</div>
+          <h3 class="feature-title">Python Source Code</h3>
+          <p class="feature-desc">Open codebase on GitHub. Run directly using Python 3.11+ and PyQt6 across any operating system.</p>
+          <a href="https://github.com/bhatnagarakul5-debug/S.T.U.N.T-Student-Tracker-for-Unified-Navigation-Tasks" target="_blank" class="btn btn-secondary btn-sm" style="margin-top: auto;">View GitHub Repo</a>
         </div>
-        <div class="pyq-price-row">
-          <div>
-            <div style="font-size: 10px; color: #94a3b8;">ONE-TIME UNLOCK</div>
-            <div class="pyq-price">₹29</div>
-          </div>
-          <button class="btn btn-emerald btn-sm open-reg-btn">Unlock Paper</button>
-        </div>
-      </div>
 
-      <!-- Item 4: All-in-One Pass -->
-      <div class="pyq-card" style="border-color: rgba(139,92,246,0.5); background: linear-gradient(180deg, rgba(30,27,75,0.6) 0%, rgba(15,23,42,0.8) 100%);">
-        <div>
-          <div class="pyq-tag" style="background: #8b5cf6; color: #fff;">FULL SEMESTER PASS</div>
-          <div class="pyq-title">Complete Semester 3 All-Subject Vault</div>
-          <div class="pyq-sub">All 6 subjects, 30+ solved papers, formula cheat sheets, and JARVIS AI exam simulation access.</div>
-        </div>
-        <div class="pyq-price-row">
-          <div>
-            <div style="font-size: 10px; color: #94a3b8;">SEMESTER PASS</div>
-            <div class="pyq-price" style="color: #a78bfa;">₹149 <span style="font-size: 12px; color: #64748b; text-decoration: line-through;">₹299</span></div>
-          </div>
-          <button class="btn btn-primary btn-sm open-reg-btn">Get Full Pass</button>
+        <!-- JARVIS Mark 58 -->
+        <div class="feature-box">
+          <div style="font-size: 28px; margin-bottom: 8px;">🤖</div>
+          <h3 class="feature-title">JARVIS Mark 58 Core</h3>
+          <p class="feature-desc">Akul's sovereign AI assistant codebase featuring voice control, anti-surfer shield, and STUNT bridge.</p>
+          <a href="https://github.com/bhatnagarakul5-debug/JARVIS-MARK-LVIII" target="_blank" class="btn btn-secondary btn-sm" style="margin-top: auto;">View JARVIS Repo</a>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ==========================================================================
-       Pricing & Subscription Tiers
+       Full Privacy Policy Modal
        ========================================================================== -->
-  <section id="pricing" class="container" style="padding-top: 60px;">
-    <div class="section-title-wrap">
-      <div class="section-tag">Transparent Pricing</div>
-      <h2 class="section-title">Built to Fit Student Budgets</h2>
-      <p class="section-desc">Free forever for local academic tracking. Upgrade to Pro for multi-device sync and unlimited JARVIS AI.</p>
+  <div id="privacy-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <button class="modal-close" id="privacy-modal-close">&times;</button>
+      <div style="margin-bottom: 16px;">
+        <span class="nav-tag">DATA SOVEREIGNTY CHARTER</span>
+        <h3 style="font-size: 20px; font-weight: 700; color: #ffffff; margin-top: 8px;">STUNT & J.A.R.V.I.S. Mark 58 Privacy Policy</h3>
+        <p style="font-size: 12px; color: var(--text-tertiary);">Effective: September 30, 2026 • Lead Developer: Akul Bhatnagar</p>
+      </div>
+
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
+        <p><b>1. Zero Third-Party Telemetry:</b> STUNT transmits zero analytics, tracking beacons, or behavioral telemetry to ad networks or data aggregators. Your academics remain completely confidential.</p>
+        <p><b>2. Local Storage by Default:</b> Your course grades, attendance logs, timetables, syllabus notes, and financial ledger reside strictly on your local computer in <code style="font-family: var(--font-mono); color: #fff;">stunt_database.db</code>.</p>
+        <p><b>3. J.A.R.V.I.S. Mark 58 Isolation:</b> J.A.R.V.I.S. communicates with STUNT through an isolated local IPC bridge on loopback address <code style="font-family: var(--font-mono); color: #fff;">127.0.0.1</code>. Voice commands and file operations never execute on unapproved remote servers.</p>
+        <p><b>4. Anti-Shoulder Surfer Protocol:</b> Pressing <code style="font-family: var(--font-mono); color: #fff;">Ctrl+Shift+P</code> in STUNT immediately masks sensitive attendance percentages, CGPA metrics, and financial records with '••••••' to protect your screen in public college libraries.</p>
+        <p><b>5. Instant Local Purge:</b> You retain complete data sovereignty. Selecting 'Purge Local Database' or deleting the database file erases all records permanently with zero cloud remnants.</p>
+      </div>
+
+      <button class="btn btn-secondary btn-sm" id="privacy-modal-dismiss" style="margin-top: 20px; width: 100%;">
+        Close Charter
+      </button>
     </div>
-
-    <div class="pricing-grid">
-      <!-- Free Plan -->
-      <div class="pricing-card">
-        <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Campus Free</h3>
-        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Essential tracking tools on your personal laptop.</p>
-        <div style="font-size: 36px; font-weight: 900; margin-bottom: 24px;">₹0 <span style="font-size: 14px; font-weight: 500; color: #64748b;">forever</span></div>
-
-        <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; font-size: 13px;">
-          <li>✓ Unlimited Attendance & Bunk Math</li>
-          <li>✓ Dynamic Timetable & Conflict Detection</li>
-          <li>✓ Financial Ledger & Matplotlib Donut Charts</li>
-          <li>✓ Roommate Expense Splitter</li>
-          <li>✓ 100% Offline SQLite Storage</li>
-          <li style="color: #64748b;">✗ Multi-Device Cloud Sync</li>
-          <li style="color: #64748b;">✗ Unlimited JARVIS AI Exam Prep</li>
-        </ul>
-
-        <a href="#download" class="btn btn-secondary" style="margin-top: auto;">Download Free App</a>
-      </div>
-
-      <!-- Pro Scholar Plan (Featured) -->
-      <div class="pricing-card featured">
-        <div class="pricing-featured-badge">MOST POPULAR</div>
-        <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">STUNT Pro Scholar</h3>
-        <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 20px;">WhatsApp-style live sync between your phone and laptop.</p>
-        <div style="font-size: 36px; font-weight: 900; margin-bottom: 24px;">₹99 <span style="font-size: 14px; font-weight: 500; color: #a78bfa;">/ month</span></div>
-
-        <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; font-size: 13px;">
-          <li>✓ <b>Everything in Free Plan</b></li>
-          <li>✓ <b>Instant Phone + Laptop Cloud Sync</b></li>
-          <li>✓ <b>Unlimited JARVIS AI Exam Prep & Viva Tutor</b></li>
-          <li>✓ <b>Free Access to All Solved PYQ Papers</b></li>
-          <li>✓ <b>Automated Attendance Bunk Push Alerts</b></li>
-          <li>✓ <b>Verified Student Digital ID Badge</b></li>
-        </ul>
-
-        <button class="btn btn-primary open-reg-btn" style="margin-top: auto;">Upgrade to Pro Scholar</button>
-      </div>
-
-      <!-- Campus Leader Plan -->
-      <div class="pricing-card">
-        <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Batch Leader / CR</h3>
-        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">For class representatives and batch coordinators.</p>
-        <div style="font-size: 36px; font-weight: 900; margin-bottom: 24px;">Custom <span style="font-size: 14px; font-weight: 500; color: #64748b;">per college</span></div>
-
-        <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; font-size: 13px;">
-          <li>✓ <b>Entire Batch Timetable Broadcasts</b></li>
-          <li>✓ <b>Lecture Reschedule & Room Change Alerts</b></li>
-          <li>✓ <b>Shared Batch Resource & PYQ Drive</b></li>
-          <li>✓ <b>Class Representative Admin Portal</b></li>
-        </ul>
-
-        <button class="btn btn-secondary open-reg-btn" style="margin-top: auto;">Contact for Campus Pass</button>
-      </div>
-    </div>
-  </section>
+  </div>
 
   <!-- ==========================================================================
-       Multi-Platform Download Hub
+       Student Registration Modal
        ========================================================================== -->
-  <section id="download" class="container" style="padding-top: 60px;">
-    <div class="section-title-wrap">
-      <div class="section-tag">Install Everywhere</div>
-      <h2 class="section-title">Download STUNT for Your Devices</h2>
-      <p class="section-desc">Experience seamless academic productivity across your computer, phone, and browser.</p>
-    </div>
-
-    <div class="download-grid">
-      <!-- Windows Tile -->
-      <a href="../STUNT.exe" download id="dl-win-tile" class="download-tile">
-        <span style="font-size: 36px;">🪟</span>
-        <div style="font-weight: 700; font-size: 16px;">Windows PC</div>
-        <div style="font-size: 12px; color: #94a3b8;">Direct .exe Installer</div>
-        <span class="dl-rec-badge" style="display: none; font-size: 10px; background: rgba(139,92,246,0.2); color: #a78bfa; padding: 2px 8px; border-radius: 4px; font-weight: bold;">YOUR OS</span>
-        <span class="btn btn-primary btn-sm" style="margin-top: auto;">Download STUNT.exe</span>
-      </a>
-
-      <!-- macOS Tile -->
-      <a href="#" id="dl-mac-tile" class="download-tile open-reg-btn">
-        <span style="font-size: 36px;">🍎</span>
-        <div style="font-weight: 700; font-size: 16px;">macOS (Apple Silicon & Intel)</div>
-        <div style="font-size: 12px; color: #94a3b8;">Universal DMG Package</div>
-        <span class="btn btn-secondary btn-sm" style="margin-top: auto;">Get Mac Build</span>
-      </a>
-
-      <!-- Android Tile -->
-      <a href="#" id="dl-and-tile" class="download-tile open-reg-btn">
-        <span style="font-size: 36px;">🤖</span>
-        <div style="font-weight: 700; font-size: 16px;">Android Phone</div>
-        <div style="font-size: 12px; color: #94a3b8;">APK Preview & Play Store</div>
-        <span class="btn btn-secondary btn-sm" style="margin-top: auto;">Get Android App</span>
-      </a>
-
-      <!-- Web Portal Tile -->
-      <a href="#simulator" class="download-tile">
-        <span style="font-size: 36px;">🌐</span>
-        <div style="font-weight: 700; font-size: 16px;">Web Portal (PWA)</div>
-        <div style="font-size: 12px; color: #94a3b8;">Run in Chrome / Safari / Edge</div>
-        <span class="btn btn-cyan btn-sm" style="margin-top: auto;">Launch Web App</span>
-      </a>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       Student Registration Modal & Digital ID Generator
-       ========================================================================== -->
-  <div id="reg-modal" class="modal-overlay">
-    <div class="modal-card">
-      <button id="reg-modal-close" class="modal-close-btn">&times;</button>
-      
-      <div style="text-align: center; margin-bottom: 20px;">
-        <span style="font-size: 11px; background: rgba(139,92,246,0.2); color: #a78bfa; padding: 3px 10px; border-radius: 999px; font-weight: bold;">
-          STUDENT ONBOARDING
-        </span>
-        <h3 style="font-size: 22px; font-weight: 800; margin-top: 8px;">Claim Your STUNT Campus ID</h3>
-        <p style="color: #94a3b8; font-size: 13px;">Get instant cloud sync across your devices and access your campus network.</p>
+  <div id="reg-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <button class="modal-close" id="reg-modal-close">&times;</button>
+      <div style="margin-bottom: 16px;">
+        <span class="nav-tag">STUDENT ONBOARDING</span>
+        <h3 style="font-size: 20px; font-weight: 700; color: #ffffff; margin-top: 8px;">Claim Your STUNT Campus ID</h3>
+        <p style="font-size: 12px; color: var(--text-tertiary);">Reserve your student profile and enable multi-device sync.</p>
       </div>
 
-      <div id="id-card-preview-wrap" class="id-card-wrap">
-        <!-- Replaced dynamically upon registration -->
-      </div>
+      <div id="id-card-preview-wrap"></div>
 
-      <form id="reg-form" style="display: flex; flex-direction: column; gap: 12px;">
-        <div>
-          <label style="font-size: 11px; color: #cbd5e1; font-weight: bold; margin-bottom: 4px; display: block;">Full Name</label>
-          <input type="text" id="reg-name" class="web-input" placeholder="e.g. Akul Bhatnagar" required>
+      <form id="reg-form">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="reg-name" class="form-input" placeholder="e.g. Akul Bhatnagar" required>
         </div>
 
-        <div>
-          <label style="font-size: 11px; color: #cbd5e1; font-weight: bold; margin-bottom: 4px; display: block;">University / College Name</label>
-          <input type="text" id="reg-college" class="web-input" placeholder="e.g. College of Information Studies" required>
+        <div class="form-group">
+          <label class="form-label">College / University</label>
+          <input type="text" id="reg-college" class="form-input" placeholder="e.g. NMIMS Mumbai" required>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div>
-            <label style="font-size: 11px; color: #cbd5e1; font-weight: bold; margin-bottom: 4px; display: block;">Course / Major</label>
-            <input type="text" id="reg-course" class="web-input" placeholder="e.g. B.Tech CSE" required>
+          <div class="form-group">
+            <label class="form-label">Course / Degree</label>
+            <input type="text" id="reg-course" class="form-input" placeholder="e.g. BBA International Business" required>
           </div>
-          <div>
-            <label style="font-size: 11px; color: #cbd5e1; font-weight: bold; margin-bottom: 4px; display: block;">Current Semester</label>
-            <select id="reg-sem" class="web-input">
+          <div class="form-group">
+            <label class="form-label">Semester</label>
+            <select id="reg-sem" class="form-input">
               <option value="Semester 1">Semester 1</option>
               <option value="Semester 2">Semester 2</option>
               <option value="Semester 3" selected>Semester 3</option>
               <option value="Semester 4">Semester 4</option>
               <option value="Semester 5">Semester 5</option>
               <option value="Semester 6">Semester 6</option>
-              <option value="Semester 7">Semester 7</option>
-              <option value="Semester 8">Semester 8</option>
             </select>
           </div>
         </div>
 
-        <div>
-          <label style="font-size: 11px; color: #cbd5e1; font-weight: bold; margin-bottom: 4px; display: block;">Batch Years</label>
-          <input type="text" id="reg-batch" class="web-input" placeholder="e.g. 2026 – 2030" value="2026 – 2030">
+        <div class="form-group">
+          <label class="form-label">Contact / Email (for Sync)</label>
+          <input type="text" id="reg-contact" class="form-input" placeholder="student@university.edu" required>
         </div>
 
-        <div>
-          <label style="font-size: 11px; color: #cbd5e1; font-weight: bold; margin-bottom: 4px; display: block;">Email or Phone (for OTP Sync)</label>
-          <input type="text" id="reg-contact" class="web-input" placeholder="student@university.edu" required>
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
-          ✨ Generate Digital Student Pass & Reserve Account
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+          Generate Student ID & Reserve Profile
         </button>
       </form>
     </div>
@@ -643,27 +408,21 @@
        Footer
        ========================================================================== -->
   <footer class="footer">
-    <div class="container">
-      <div class="footer-top">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <img src="assets/RedandBlackGlitchcoreStuntLogo.png" alt="STUNT" style="width: 28px; height: 28px; border-radius: 6px;">
-          <span style="font-weight: 800; font-size: 16px; color: #fff;">STUNT Campus OS</span>
-        </div>
-        <div style="display: flex; gap: 20px; font-size: 13px;">
-          <a href="#simulator" style="color: var(--text-muted); text-decoration: none;">Live Sync</a>
-          <a href="#demos" style="color: var(--text-muted); text-decoration: none;">Bunk Math</a>
-          <a href="#pyq-vault" style="color: var(--text-muted); text-decoration: none;">PYQ Vault</a>
-          <a href="https://github.com/bhatnagarakul5-debug/S.T.U.N.T-Student-Tracker-for-Unified-Navigation-Tasks" target="_blank" style="color: var(--text-muted); text-decoration: none;">GitHub Repository</a>
-        </div>
+    <div class="container footer-row">
+      <div>
+        <span style="font-weight: 600; color: #ffffff;">STUNT & J.A.R.V.I.S. Mark 58</span>
+        <span style="color: var(--text-tertiary); margin-left: 8px;">• Engineered by Akul Bhatnagar</span>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #64748b;">
-        <div>&copy; 2026 STUNT: Student Tracker for Unified Navigation & Tasks. Built by Akul.</div>
-        <div>Engineered with Glitchcore Dark UI & Real-Time Sync Architecture.</div>
+
+      <div class="footer-links">
+        <a href="#manifesto">Why I Built This</a>
+        <a href="#sovereignty">Privacy Charter</a>
+        <a href="https://github.com/bhatnagarakul5-debug/S.T.U.N.T-Student-Tracker-for-Unified-Navigation-Tasks" target="_blank">STUNT GitHub</a>
+        <a href="https://github.com/bhatnagarakul5-debug/JARVIS-MARK-LVIII" target="_blank">JARVIS GitHub</a>
       </div>
     </div>
   </footer>
 
-  <!-- Scripts -->
   <script src="app.js"></script>
 </body>
 </html>

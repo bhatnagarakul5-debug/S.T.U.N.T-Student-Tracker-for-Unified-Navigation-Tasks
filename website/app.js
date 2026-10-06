@@ -1,106 +1,26 @@
 /**
- * STUNT Official Showcase & Campus Ecosystem Logic (app.js)
- * Live dual-device sync simulator, interactive bunk calculator,
- * timetable preview, JARVIS AI terminal, and student registration.
+ * STUNT — Official Showcase & Sovereign Campus OS (app.js)
+ * Clean, lightweight, client-side interactions.
+ * Developed by Akul Bhatnagar (NMIMS Mumbai BBA IB).
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  initDualDeviceSimulator();
   initBunkCalculator();
   initTimetableSwitcher();
   initSplitterTool();
   initJarvisTerminal();
+  initPrivacyModal();
   initRegistrationModal();
-  initDownloadHub();
 });
 
 // ==========================================================================
-// 1. Dual Device Simulator (Phone -> Laptop Real-time Sync)
-// ==========================================================================
-function initDualDeviceSimulator() {
-  const btnPhoneAtt = document.getElementById('btn-phone-att');
-  const btnPhoneSplit = document.getElementById('btn-phone-split');
-  
-  const phoneAttPct = document.getElementById('phone-att-pct');
-  const desktopAttPct = document.getElementById('desktop-att-pct');
-  const desktopAttProgress = document.getElementById('desktop-att-progress');
-  const desktopSyncToast = document.getElementById('desktop-sync-toast');
-  const desktopTxnList = document.getElementById('desktop-txn-list');
-
-  let attCount = 31;
-  let totalClasses = 38;
-
-  function triggerSyncAnimation(message) {
-    if (!desktopSyncToast) return;
-    desktopSyncToast.textContent = `⚡ Live Sync: ${message}`;
-    desktopSyncToast.style.opacity = '1';
-    desktopSyncToast.style.transform = 'translateY(0)';
-    setTimeout(() => {
-      desktopSyncToast.style.opacity = '0';
-      desktopSyncToast.style.transform = 'translateY(-8px)';
-    }, 3200);
-  }
-
-  if (btnPhoneAtt) {
-    btnPhoneAtt.addEventListener('click', () => {
-      attCount++;
-      totalClasses++;
-      const newPct = ((attCount / totalClasses) * 100).toFixed(1);
-      
-      // Update phone
-      if (phoneAttPct) phoneAttPct.textContent = `${newPct}%`;
-      
-      // Update desktop
-      if (desktopAttPct) desktopAttPct.textContent = `${newPct}% (${attCount}/${totalClasses})`;
-      if (desktopAttProgress) desktopAttProgress.style.width = `${Math.min(100, newPct)}%`;
-      
-      btnPhoneAtt.textContent = '✓ Logged Present!';
-      btnPhoneAtt.style.background = '#10b981';
-      setTimeout(() => {
-        btnPhoneAtt.textContent = '📱 Quick Tap: Mark Lecture Present';
-        btnPhoneAtt.style.background = '';
-      }, 1500);
-
-      triggerSyncAnimation(`Attendance marked on Mobile (${newPct}%)`);
-    });
-  }
-
-  if (btnPhoneSplit) {
-    btnPhoneSplit.addEventListener('click', () => {
-      const sampleBills = [
-        { title: 'Cafeteria Lunch', amt: '₹480', per: '₹160/ea (3 ppl)' },
-        { title: 'Hostel Wi-Fi Bill', amt: '₹900', per: '₹300/ea (3 ppl)' },
-        { title: 'Printouts & Notes', amt: '₹120', per: '₹40/ea (3 ppl)' }
-      ];
-      const bill = sampleBills[Math.floor(Math.random() * sampleBills.length)];
-
-      if (desktopTxnList) {
-        const item = document.createElement('div');
-        item.style.cssText = 'display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px; animation:fadeIn 0.3s ease;';
-        item.innerHTML = `<span>🧾 ${bill.title}</span><span style="color:#f43f5e; font-weight:bold;">-${bill.amt} (${bill.per})</span>`;
-        desktopTxnList.insertBefore(item, desktopTxnList.firstChild);
-      }
-
-      btnPhoneSplit.textContent = '✓ Bill Split & Notified!';
-      btnPhoneSplit.style.background = '#06b6d4';
-      setTimeout(() => {
-        btnPhoneSplit.textContent = '🧾 Split ₹600 Lunch with 3 Friends';
-        btnPhoneSplit.style.background = '';
-      }, 1500);
-
-      triggerSyncAnimation(`Split '${bill.title}' added to Desktop ledger`);
-    });
-  }
-}
-
-// ==========================================================================
-// 2. Interactive Bunk Forecaster (Student Bunk Math Engine)
+// 1. Interactive 75% Attendance & Bunk Forecaster (Integer Precision)
 // ==========================================================================
 function initBunkCalculator() {
   const sliderAtt = document.getElementById('bunk-slider-att');
   const sliderTot = document.getElementById('bunk-slider-tot');
   const sliderReq = document.getElementById('bunk-slider-req');
-  
+
   const valAtt = document.getElementById('bunk-val-att');
   const valTot = document.getElementById('bunk-val-tot');
   const valReq = document.getElementById('bunk-val-req');
@@ -113,7 +33,7 @@ function initBunkCalculator() {
     let total = parseInt(sliderTot.value, 10);
     const target = parseInt(sliderReq.value, 10) / 100.0;
 
-    // Enforce logic: attended cannot exceed total
+    // Constrain: attended cannot exceed total
     if (attended > total) {
       attended = total;
       sliderAtt.value = attended;
@@ -125,24 +45,16 @@ function initBunkCalculator() {
 
     const currentPct = (attended / total) * 100;
 
-    if (currentPct >= (target * 100)) {
-      // Calculate how many more classes can be missed
-      // (attended) / (total + x) >= target => attended >= target * total + target * x
-      // target * x <= attended - target * total => x <= (attended / target) - total
-      const maxBunks = Math.floor((attended / target) - total);
-      resultPill.style.background = 'rgba(16, 185, 129, 0.15)';
-      resultPill.style.color = '#34d399';
-      resultPill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-      resultPill.innerHTML = `🎉 <b>${currentPct.toFixed(1)}% Attendance!</b> You can safely bunk <b>${Math.max(0, maxBunks)}</b> more lecture(s) without dropping below ${(target * 100).toFixed(0)}%!`;
+    if (currentPct >= target * 100) {
+      // (attended) / (total + x) >= target => x <= (attended / target) - total
+      const maxBunks = Math.floor(attended / target - total);
+      resultPill.className = 'status-badge safe';
+      resultPill.innerHTML = `✓ <b>${currentPct.toFixed(1)}% Attendance</b> — You can safely bunk <b>${Math.max(0, maxBunks)}</b> lecture(s) before dropping below ${(target * 100).toFixed(0)}%.`;
     } else {
-      // Calculate how many consecutive classes must be attended
-      // (attended + y) / (total + y) >= target => attended + y >= target * total + target * y
-      // y * (1 - target) >= target * total - attended
+      // (attended + y) / (total + y) >= target => y >= (target * total - attended) / (1 - target)
       const mustAttend = Math.ceil((target * total - attended) / (1 - target));
-      resultPill.style.background = 'rgba(244, 63, 94, 0.15)';
-      resultPill.style.color = '#fb7185';
-      resultPill.style.borderColor = 'rgba(244, 63, 94, 0.4)';
-      resultPill.innerHTML = `⚠️ <b>${currentPct.toFixed(1)}% Attendance Alert!</b> You MUST attend the next <b>${Math.max(1, mustAttend)}</b> consecutive lecture(s) to restore ${(target * 100).toFixed(0)}% eligibility!`;
+      resultPill.className = 'status-badge alert';
+      resultPill.innerHTML = `⚠️ <b>${currentPct.toFixed(1)}% Attendance Alert</b> — You must attend the next <b>${Math.max(1, mustAttend)}</b> consecutive lecture(s) to restore ${(target * 100).toFixed(0)}% eligibility.`;
     }
   }
 
@@ -154,34 +66,34 @@ function initBunkCalculator() {
 }
 
 // ==========================================================================
-// 3. Dynamic Timetable Day Switcher
+// 2. Dynamic Timetable Matrix
 // ==========================================================================
 function initTimetableSwitcher() {
-  const tabs = document.querySelectorAll('.tt-day-tab');
+  const tabs = document.querySelectorAll('.tt-tab, .tt-day-tab');
   const container = document.getElementById('tt-schedule-container');
 
   const schedules = {
     Mon: [
-      { time: '09:00 AM - 10:15 AM', sub: 'International Finance', room: 'Lecture Hall 204', faculty: 'Dr. Sharma' },
-      { time: '10:30 AM - 11:45 AM', sub: 'Business Economics', room: 'Room 312', faculty: 'Prof. Roy' },
-      { time: '01:00 PM - 02:30 PM', sub: 'Data Analytics Lab', room: 'CS Lab 2', faculty: 'Prof. Verma' }
+      { time: '09:00 - 10:15 AM', sub: 'International Finance', room: 'Hall 204', faculty: 'Dr. Sharma' },
+      { time: '10:30 - 11:45 AM', sub: 'Business Economics', room: 'Room 312', faculty: 'Prof. Roy' },
+      { time: '01:00 - 02:30 PM', sub: 'Data Analytics & Modeling', room: 'CS Lab 2', faculty: 'Prof. Verma' }
     ],
     Tue: [
-      { time: '09:30 AM - 11:00 AM', sub: 'Corporate Strategy', room: 'Hall B', faculty: 'Dr. Nair' },
-      { time: '11:15 AM - 12:45 PM', sub: 'International Business', room: 'Room 105', faculty: 'Prof. Kapoor' }
+      { time: '09:30 - 11:00 AM', sub: 'Corporate Strategy & Governance', room: 'Hall B', faculty: 'Dr. Nair' },
+      { time: '11:15 - 12:45 PM', sub: 'Global Trade Logistics', room: 'Room 105', faculty: 'Prof. Kapoor' }
     ],
     Wed: [
-      { time: '09:00 AM - 10:15 AM', sub: 'International Finance', room: 'Lecture Hall 204', faculty: 'Dr. Sharma' },
-      { time: '11:00 AM - 12:30 PM', sub: 'Financial Modeling', room: 'Lab 4', faculty: 'Dr. Sengupta' },
-      { time: '02:00 PM - 03:15 PM', sub: 'Business Law', room: 'Room 201', faculty: 'Adv. Mehra' }
+      { time: '09:00 - 10:15 AM', sub: 'International Finance', room: 'Hall 204', faculty: 'Dr. Sharma' },
+      { time: '11:00 - 12:30 PM', sub: 'Financial Modeling & Valuation', room: 'Lab 4', faculty: 'Dr. Sengupta' },
+      { time: '02:00 - 03:15 PM', sub: 'Business Law & Ethics', room: 'Room 201', faculty: 'Adv. Mehra' }
     ],
     Thu: [
-      { time: '10:00 AM - 11:30 AM', sub: 'Marketing & Brand Strategy', room: 'Hall 3', faculty: 'Prof. Rao' },
-      { time: '01:30 PM - 03:00 PM', sub: 'Business Economics', room: 'Room 312', faculty: 'Prof. Roy' }
+      { time: '10:00 - 11:30 AM', sub: 'Marketing & Brand Strategy', room: 'Hall 3', faculty: 'Prof. Rao' },
+      { time: '01:30 - 03:00 PM', sub: 'Business Economics', room: 'Room 312', faculty: 'Prof. Roy' }
     ],
     Fri: [
-      { time: '09:00 AM - 10:30 AM', sub: 'International Business Seminar', room: 'Auditorium', faculty: 'Guest Speaker' },
-      { time: '11:00 AM - 01:00 PM', sub: 'Capstone Project Review', room: 'Conference Room 1', faculty: 'Faculty Panel' }
+      { time: '09:00 - 10:30 AM', sub: 'International Business Seminar', room: 'Auditorium', faculty: 'Visiting Fellow' },
+      { time: '11:00 - 01:00 PM', sub: 'Capstone Project Evaluation', room: 'Boardroom 1', faculty: 'Faculty Panel' }
     ]
   };
 
@@ -189,12 +101,12 @@ function initTimetableSwitcher() {
     if (!container) return;
     const slots = schedules[day] || [];
     container.innerHTML = slots.map(s => `
-      <div class="tt-slot-item">
+      <div class="tt-row">
         <div>
-          <div style="font-weight: 700; font-size: 13px; color: #ffffff;">${s.sub}</div>
-          <div style="font-size: 11px; color: #94a3b8;">📍 ${s.room} • 👤 ${s.faculty}</div>
+          <div style="font-weight: 600; color: #ffffff;">${s.sub}</div>
+          <div style="font-size: 11px; color: var(--text-tertiary);">📍 ${s.room} • 👤 ${s.faculty}</div>
         </div>
-        <div style="font-family: var(--font-mono); font-size: 11px; color: #38bdf8; background: rgba(6,182,212,0.1); padding: 4px 8px; border-radius: 6px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: #a1a1aa; background: #1c1c22; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border);">
           ${s.time}
         </div>
       </div>
@@ -205,7 +117,7 @@ function initTimetableSwitcher() {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      renderDay(tab.dataset.day);
+      renderDay(tab.dataset.day || tab.textContent.trim());
     });
   });
 
@@ -213,7 +125,7 @@ function initTimetableSwitcher() {
 }
 
 // ==========================================================================
-// 4. Instant Roommate Expense Splitter
+// 3. Hostel / Roommate Bill Splitter
 // ==========================================================================
 function initSplitterTool() {
   const inAmt = document.getElementById('split-input-amt');
@@ -226,7 +138,7 @@ function initSplitterTool() {
     const amt = parseFloat(inAmt.value) || 0;
     const ppl = Math.max(1, parseInt(inPpl.value, 10) || 1);
     const share = (amt / ppl).toFixed(0);
-    outShare.textContent = `₹${Number(share).toLocaleString()}`;
+    outShare.textContent = `₹${Number(share).toLocaleString('en-IN')}`;
   }
 
   if (inAmt && inPpl) {
@@ -237,33 +149,36 @@ function initSplitterTool() {
 
   if (btnUpi) {
     btnUpi.addEventListener('click', () => {
-      const amt = parseFloat(inAmt.value) || 600;
-      const ppl = Math.max(1, parseInt(inPpl.value, 10) || 3);
+      const amt = parseFloat(inAmt?.value) || 1200;
+      const ppl = Math.max(1, parseInt(inPpl?.value, 10) || 4);
       const share = (amt / ppl).toFixed(0);
-      navigator.clipboard?.writeText(`Hey! Your share for the bill is ₹${share}. Please pay via UPI.`);
-      btnUpi.textContent = '✓ Copied Payment Text!';
-      btnUpi.style.background = '#10b981';
+      const text = `Hey! Your share for the shared expenses is ₹${share}. Please pay via UPI. (Calculated via STUNT)`;
+      
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      }
+      const prevText = btnUpi.textContent;
+      btnUpi.textContent = '✓ Copied Payment Text to Clipboard!';
       setTimeout(() => {
-        btnUpi.textContent = '💬 Copy WhatsApp / UPI Request';
-        btnUpi.style.background = '';
-      }, 1800);
+        btnUpi.textContent = prevText;
+      }, 2000);
     });
   }
 }
 
 // ==========================================================================
-// 5. JARVIS AI Interactive Terminal
+// 4. J.A.R.V.I.S. Mark 58 Terminal Integration
 // ==========================================================================
 function initJarvisTerminal() {
   const inputEl = document.getElementById('jarvis-input');
   const outputEl = document.getElementById('jarvis-output');
   const btnSend = document.getElementById('jarvis-send');
-  const chipButtons = document.querySelectorAll('.jarvis-prompt-chip');
+  const chipButtons = document.querySelectorAll('.chip-btn, .jarvis-prompt-chip');
 
   const responses = {
-    viva: "⚡ <b>JARVIS Predictive Viva Analysis:</b>\n1. Explain the difference between Spot vs. Forward Exchange Rates.\n2. How does Purchasing Power Parity (PPP) influence sovereign currency valuation?\n3. What are currency swaps and why do multinational corporations hedge with them?",
-    dupont: "⚡ <b>JARVIS Academic Synthesis:</b>\n• <b>DuPont Formula:</b> ROE = Profit Margin × Asset Turnover × Financial Leverage.\n• <b>Key Insight:</b> It disaggregates return on equity to reveal whether profitability stems from high margins, efficient asset use, or debt financing.",
-    bunk: "⚡ <b>JARVIS Bunk Algorithm:</b>\nBased on your current 82% attendance, you have a safe buffer of <b>3 classes</b> before hitting the 75% boundary. Recommendation: Keep 1 emergency buffer class for sick days!"
+    viva: "⚡ [JARVIS Mark 58 // stunt_bridge.py]\n\nPredictive Viva Questions (International Finance):\n1. Distinguish between Covered Interest Arbitrage (CIA) and Uncovered Interest Parity (UIP).\n2. How does Purchasing Power Parity (PPP) forecast long-term sovereign currency exchange rates?\n3. Explain the mechanics of currency swaps in mitigating multinational foreign exchange exposure.",
+    dupont: "⚡ [JARVIS Mark 58 // stunt_bridge.py]\n\nDuPont Analysis Breakdown:\n• Formula: ROE = Net Profit Margin × Total Asset Turnover × Financial Leverage Multiplier.\n• Academic Insight: Pinpoints whether a company's high ROE is driven by operational pricing power (margin), capital efficiency (turnover), or risky balance sheet gearing (leverage).",
+    bunk: "⚡ [JARVIS Mark 58 // stunt_bridge.py]\n\nAttendance Safety Engine:\n• Current Status: 32 / 38 classes attended (84.2%). Target: 75%.\n• Buffer: You have 4 allowable absences remaining.\n• Verdict: Safe to attend group project prep tomorrow. 1 emergency buffer class recommended for exam week."
   };
 
   function typeResponse(text) {
@@ -271,20 +186,20 @@ function initJarvisTerminal() {
     outputEl.innerHTML = '';
     let i = 0;
     const interval = setInterval(() => {
-      outputEl.innerHTML = text.slice(0, i);
-      i += 3;
+      outputEl.innerHTML = text.slice(0, i).replace(/\n/g, '<br>');
+      i += 4;
       if (i > text.length) {
-        outputEl.innerHTML = text;
+        outputEl.innerHTML = text.replace(/\n/g, '<br>');
         clearInterval(interval);
       }
-    }, 15);
+    }, 12);
   }
 
   function handlePrompt(promptText) {
     const lower = promptText.toLowerCase();
-    if (lower.includes('viva') || lower.includes('question')) {
+    if (lower.includes('viva') || lower.includes('question') || lower.includes('finance')) {
       typeResponse(responses.viva);
-    } else if (lower.includes('dupont') || lower.includes('finance')) {
+    } else if (lower.includes('dupont') || lower.includes('roe') || lower.includes('margin')) {
       typeResponse(responses.dupont);
     } else {
       typeResponse(responses.bunk);
@@ -306,14 +221,55 @@ function initJarvisTerminal() {
 
   chipButtons.forEach(chip => {
     chip.addEventListener('click', () => {
-      if (inputEl) inputEl.value = chip.dataset.prompt;
-      handlePrompt(chip.dataset.prompt);
+      const prompt = chip.dataset.prompt || chip.textContent.trim();
+      if (inputEl) inputEl.value = prompt;
+      handlePrompt(prompt);
     });
   });
 }
 
 // ==========================================================================
-// 6. Registration Modal & Digital Student ID Card Generator
+// 5. Data Sovereignty & Privacy Policy Modal
+// ==========================================================================
+function initPrivacyModal() {
+  const modal = document.getElementById('privacy-modal');
+  const openButtons = document.querySelectorAll('.open-privacy-modal-btn');
+  const closeBtn = document.getElementById('privacy-modal-close');
+  const dismissBtn = document.getElementById('privacy-modal-dismiss');
+
+  function openModal() {
+    if (modal) modal.classList.add('active');
+  }
+
+  function closeModal() {
+    if (modal) modal.classList.remove('active');
+  }
+
+  openButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal();
+    });
+  });
+
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (dismissBtn) dismissBtn.addEventListener('click', closeModal);
+
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
+      closeModal();
+    }
+  });
+}
+
+// ==========================================================================
+// 6. Student Onboarding Modal & Verified Digital Pass
 // ==========================================================================
 function initRegistrationModal() {
   const modal = document.getElementById('reg-modal');
@@ -322,92 +278,77 @@ function initRegistrationModal() {
   const regForm = document.getElementById('reg-form');
   const cardPreviewWrap = document.getElementById('id-card-preview-wrap');
 
+  function openModal() {
+    if (modal) modal.classList.add('active');
+  }
+
+  function closeModal() {
+    if (modal) modal.classList.remove('active');
+  }
+
   openButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      if (modal) modal.classList.add('active');
+      openModal();
     });
   });
 
-  if (closeBtn && modal) {
-    closeBtn.addEventListener('click', () => {
-      modal.classList.remove('active');
-    });
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+  if (modal) {
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('active');
+      if (e.target === modal) closeModal();
     });
   }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
+      closeModal();
+    }
+  });
 
   if (regForm) {
     regForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const name = document.getElementById('reg-name').value || 'Akul';
-      const college = document.getElementById('reg-college').value || 'University Campus';
-      const course = document.getElementById('reg-course').value || 'B.Tech CSE';
-      const batch = document.getElementById('reg-batch').value || '2026 - 2030';
-      const sem = document.getElementById('reg-sem').value || 'Semester 3';
+      const name = document.getElementById('reg-name')?.value || 'Student User';
+      const college = document.getElementById('reg-college')?.value || 'NMIMS Mumbai';
+      const course = document.getElementById('reg-course')?.value || 'BBA International Business';
+      const sem = document.getElementById('reg-sem')?.value || 'Semester 3';
+      const contact = document.getElementById('reg-contact')?.value || 'local@stunt.internal';
 
       const stuId = `STU-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
       if (cardPreviewWrap) {
         cardPreviewWrap.innerHTML = `
-          <div class="id-card" style="animation:fadeIn 0.5s ease;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-              <span style="font-size:11px; font-weight:800; color:#a78bfa; letter-spacing:1.5px;">STUNT VERIFIED STUDENT PASS</span>
-              <span style="font-size:10px; background:#10b981; color:#064e3b; padding:2px 8px; border-radius:999px; font-weight:bold;">ACTIVE</span>
+          <div style="background: #111116; border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 20px; font-family: var(--font-sans);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="font-size: 10px; font-weight: 700; color: #a1a1aa; letter-spacing: 0.1em;">STUNT VERIFIED STUDENT PROFILE</span>
+              <span style="font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 8px; border-radius: 999px; font-weight: 600;">LOCAL SOVEREIGN</span>
             </div>
-            <div style="display:flex; gap:16px; align-items:center; margin-bottom:14px;">
-              <div style="width:52px; height:52px; border-radius:12px; background:linear-gradient(135deg, #8b5cf6, #06b6d4); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:bold; color:#fff;">
-                ${name.charAt(0)}
+            <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 12px;">
+              <div style="width: 44px; height: 44px; border-radius: 8px; background: #27272a; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #ffffff;">
+                ${name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <div style="font-size:18px; font-weight:800; color:#ffffff;">${name}</div>
-                <div style="font-size:12px; color:#cbd5e1;">${course} • ${sem}</div>
-                <div style="font-size:11px; color:#94a3b8;">${college} (${batch})</div>
+                <div style="font-size: 15px; font-weight: 700; color: #ffffff;">${name}</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">${course} • ${sem}</div>
+                <div style="font-size: 11px; color: var(--text-tertiary);">${college}</div>
               </div>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; font-family:var(--font-mono); font-size:11px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; font-family: var(--font-mono); font-size: 11px; padding-top: 8px; border-top: 1px solid var(--border-subtle);">
               <div>
-                <div style="color:#64748b; font-size:9px;">STUDENT ID</div>
-                <div style="color:#38bdf8; font-weight:bold;">${stuId}</div>
+                <div style="color: var(--text-tertiary); font-size: 9px;">STUDENT ID</div>
+                <div style="color: #ffffff; font-weight: 600;">${stuId}</div>
               </div>
-              <div style="color:#10b981; font-weight:bold;">✓ CLOUD SYNC READY</div>
+              <div style="color: #34d399; font-weight: 500;">✓ LOCAL STORAGE READY</div>
             </div>
-          </div>
-          <div style="text-align:center; margin-top:16px;">
-            <span style="color:#34d399; font-weight:700; font-size:14px;">🎉 Account Created & Cloud Sync Reserved!</span>
           </div>
         `;
       }
 
-      // Store in localStorage
-      localStorage.setItem('stunt_registered_student', JSON.stringify({
-        name, college, course, batch, sem, stuId
+      localStorage.setItem('stunt_profile', JSON.stringify({
+        name, college, course, sem, contact, stuId, registeredAt: new Date().toISOString()
       }));
     });
-  }
-}
-
-// ==========================================================================
-// 7. Multi-Platform Download Hub & OS Detector
-// ==========================================================================
-function initDownloadHub() {
-  const winBtn = document.getElementById('dl-win-tile');
-  const macBtn = document.getElementById('dl-mac-tile');
-  const andBtn = document.getElementById('dl-and-tile');
-
-  // Detect user agent
-  const ua = navigator.userAgent.toLowerCase();
-  if (ua.includes('win') && winBtn) {
-    winBtn.style.borderColor = '#8b5cf6';
-    winBtn.style.boxShadow = '0 0 25px rgba(139, 92, 246, 0.4)';
-    const badge = winBtn.querySelector('.dl-rec-badge');
-    if (badge) badge.style.display = 'inline-block';
-  } else if (ua.includes('mac') && macBtn) {
-    macBtn.style.borderColor = '#06b6d4';
-    macBtn.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.4)';
-  } else if (ua.includes('android') && andBtn) {
-    andBtn.style.borderColor = '#10b981';
-    andBtn.style.boxShadow = '0 0 25px rgba(16, 185, 129, 0.4)';
   }
 }
