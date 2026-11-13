@@ -3,8 +3,10 @@
 # Build & Executable Artifacts
 build/
 dist/
+_internal/
 *.spec
 *.exe
+stunt_campus_wallpaper.png
 
 # Python Cache & Databases
 __pycache__/

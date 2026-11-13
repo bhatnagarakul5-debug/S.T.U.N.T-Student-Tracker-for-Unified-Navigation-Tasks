@@ -13,18 +13,18 @@ from datetime import datetime, date, timedelta
 
 import db
 
-from PyQt6.QtCore import Qt, QTimer, QUrl, QSize, QThread, pyqtSignal, QDate
+from PyQt6.QtCore import Qt, QTimer, QUrl, QSize, QThread, pyqtSignal, QDate, QRect, QRectF
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QLineEdit, QDialog, QTableWidget,
     QTableWidgetItem, QHeaderView, QStackedWidget, QProgressBar, QFrame,
     QFileDialog, QMessageBox, QTabWidget, QListWidget, QListWidgetItem,
     QTextEdit, QGraphicsOpacityEffect, QGraphicsBlurEffect, QScrollArea, QGridLayout, QFormLayout,
-    QSystemTrayIcon, QSplitter, QCalendarWidget, QDateEdit
+    QSystemTrayIcon, QSplitter, QCalendarWidget, QDateEdit, QMenu, QCheckBox
 )
 from PyQt6.QtGui import (
     QIcon, QPixmap, QColor, QFont, QImage, QDesktopServices, QKeySequence, QShortcut,
-    QPainter, QPen, QBrush, QLinearGradient, QConicalGradient
+    QPainter, QPen, QBrush, QLinearGradient, QConicalGradient, QAction
 )
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtMultimediaWidgets import QVideoWidget
@@ -34,6 +34,22 @@ import matplotlib
 matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+
+def get_resource_path(relative_path):
+    """Resolve file path for normal python execution and PyInstaller bundled environments."""
+    if hasattr(sys, '_MEIPASS'):
+        bundle_path = os.path.join(sys._MEIPASS, relative_path)
+        if os.path.exists(bundle_path):
+            return bundle_path
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    local_path = os.path.join(base_dir, relative_path)
+    if os.path.exists(local_path):
+        return local_path
+    exe_dir = os.path.dirname(sys.executable)
+    exe_path = os.path.join(exe_dir, relative_path)
+    if os.path.exists(exe_path):
+        return exe_path
+    return local_path
 
 # Native Speech Synthesis Engine for Reading Copyright Aloud
 def speak_text(text):
@@ -1148,7 +1164,7 @@ class PrivacySecurityDialog(QDialog):
         policy_view.setReadOnly(True)
         policy_view.setStyleSheet("background: #090a10; color: #cbd5e1; font-size: 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px;")
         
-        pol_path = os.path.join(os.path.dirname(__file__), 'PRIVACY_POLICY.md')
+        pol_path = get_resource_path('PRIVACY_POLICY.md')
         if os.path.exists(pol_path):
             with open(pol_path, 'r', encoding='utf-8') as f:
                 policy_view.setMarkdown(f.read())
@@ -1794,6 +1810,10 @@ class CommandPaletteDialog(QDialog):
         layout.addWidget(self.card)
 
         self.commands = [
+            {"title": "Exam War Room Mode", "sub": "Tactical study cockpit, Pomodoro & active recall drills", "icon": "⚔️", "shortcut": "Ctrl+Shift+W", "action": self.main_window.open_war_room},
+            {"title": "J.A.R.V.I.S. Audio Morning Briefing", "sub": "Voice briefing on today's schedule & safe bunks", "icon": "🎙️", "shortcut": "Ctrl+M", "action": self.main_window.trigger_morning_briefing},
+            {"title": "Draft Absence / Leave Application", "sub": "Generate formal university email & WhatsApp note", "icon": "📄", "shortcut": "Ctrl+L", "action": self.main_window.open_leave_drafter},
+            {"title": "Set Campus Lockscreen Wallpaper", "sub": "Generate obsidian aesthetic desktop background", "icon": "🖼️", "shortcut": "", "action": lambda: generate_campus_wallpaper(self.main_window)},
             {"title": "Attendance & Bunk Forecaster", "sub": "View 75% eligibility & allowable bunks", "icon": "📋", "shortcut": "Ctrl+5", "action": lambda: self.main_window.switch_view(4)},
             {"title": "Open Floating Glass HUD Widget", "sub": "Pin lightweight Bunk Radar & Splitter on desktop", "icon": "🪟", "shortcut": "Ctrl+W", "action": self.main_window.toggle_glass_hud_widget},
             {"title": "Finance & Roommate Bill Splitter", "sub": "Calculate per-head UPI share & log transactions", "icon": "💰", "shortcut": "Ctrl+6", "action": lambda: self.main_window.switch_view(5)},
@@ -1970,6 +1990,11 @@ class GlassmorphicHUDWidget(QWidget):
         bb_mid.addStretch()
         bb_lay.addLayout(bb_mid)
 
+        self.combo_hud_sub = QComboBox(bunk_box)
+        self.combo_hud_sub.setStyleSheet("background: rgba(20, 20, 28, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: #ffffff; padding: 4px 8px; font-size: 11px;")
+        self.combo_hud_sub.currentIndexChanged.connect(lambda idx: self.refresh_data(update_combo=False))
+        bb_lay.addWidget(self.combo_hud_sub)
+
         btn_act_box = QHBoxLayout()
         self.btn_tap_present = QPushButton("✓ Mark Present", bunk_box)
         self.btn_tap_present.setStyleSheet("background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-weight: bold; font-size: 11px; padding: 6px; border-radius: 8px;")
@@ -2138,7 +2163,11 @@ class GlassmorphicHUDWidget(QWidget):
             amt = float(self.split_amt_in.text() or 0)
             ppl = max(1, int(self.split_ppl_in.text() or 1))
             per = math.ceil(amt / ppl)
-            self.split_result_lbl.setText(f"₹{per:,.0f} / ea")
+            is_masked = getattr(self.main_window, 'privacy_masked', False) if self.main_window else False
+            if is_masked:
+                self.split_result_lbl.setText("₹•••• / ea")
+            else:
+                self.split_result_lbl.setText(f"₹{per:,.0f} / ea")
         except ValueError:
             self.split_result_lbl.setText("₹0 / ea")
 
@@ -2153,37 +2182,104 @@ class GlassmorphicHUDWidget(QWidget):
         self.btn_copy_upi.setText("✓ Copied to Clipboard!")
         QTimer.singleShot(1800, lambda: self.btn_copy_upi.setText(prev))
 
-    def refresh_data(self):
+    def refresh_data(self, update_combo=True):
+        subs = db.get_subjects()
+        if update_combo and hasattr(self, 'combo_hud_sub'):
+            self.combo_hud_sub.blockSignals(True)
+            curr_sel = self.combo_hud_sub.currentData()
+            self.combo_hud_sub.clear()
+            self.combo_hud_sub.addItem("📋 All Subjects (Overall)", None)
+            sel_idx = 0
+            for idx, s in enumerate(subs):
+                self.combo_hud_sub.addItem(f"📚 {s['name']} ({s['code']})", s['id'])
+                if curr_sel == s['id']:
+                    sel_idx = idx + 1
+            self.combo_hud_sub.setCurrentIndex(sel_idx)
+            self.combo_hud_sub.blockSignals(False)
+
+        selected_sub_id = self.combo_hud_sub.currentData() if hasattr(self, 'combo_hud_sub') else None
+
         logs = db.get_attendance_logs()
+        if selected_sub_id is not None:
+            logs = [l for l in logs if l.get('subjectId') == selected_sub_id]
+
         total = len(logs)
         present = sum(1 for l in logs if l.get('status') == 'Present')
         pct = (present / total * 100.0) if total > 0 else 0.0
 
         is_masked = getattr(self.main_window, 'privacy_masked', False) if self.main_window else False
 
+        profile = db.get_profile()
+        target_att = profile.get('targetAttendancePct', 75.0) / 100.0
+
+        try:
+            j_start = datetime.strptime(profile.get('startDate', '2026-08-01'), "%Y-%m-%d")
+            j_end = datetime.strptime(profile.get('endDate', '2031-07-31'), "%Y-%m-%d")
+            total_days = max(1, (j_end - j_start).days)
+            elapsed = max(0, min(total_days, (datetime.now() - j_start).days))
+            sem_pct = (elapsed / total_days) * 100.0
+        except Exception:
+            sem_pct = 60.0
+
+        all_data = db.get_all_data()
+        tasks = all_data.get('tasks', [])
+        exam_days = 4
+        now_date = date.today()
+        upcoming = []
+        for t in tasks:
+            if t.get('status') != 'Completed' and t.get('dueDate'):
+                try:
+                    d = datetime.strptime(t['dueDate'], "%Y-%m-%d").date()
+                    diff = (d - now_date).days
+                    if diff >= 0:
+                        upcoming.append(diff)
+                except Exception:
+                    pass
+        if upcoming:
+            exam_days = min(upcoming)
+
         if is_masked:
             self.att_pct_lbl.setText("•••%")
             self.att_fraction_lbl.setText("••/•• classes")
             self.att_status_pill.setText("🛡️ Masked")
             self.fitness_rings.set_values(80.0, 60.0, 4)
+            self.split_result_lbl.setText("₹•••• / ea")
         else:
             self.att_pct_lbl.setText(f"{pct:.1f}%")
             self.att_fraction_lbl.setText(f"{present}/{total} classes")
 
-            if pct >= 75.0:
-                safe = math.floor((present - 0.75 * total) / 0.75) if total > 0 else 0
+            if total == 0:
+                self.att_status_pill.setText("No Classes Yet")
+                self.att_status_pill.setStyleSheet("font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.35);")
+            elif pct >= 80.0:
+                safe = math.floor((present - target_att * total) / target_att) if total > 0 else 0
                 self.att_status_pill.setText(f"+{max(0, safe)} Safe Bunks")
                 self.att_status_pill.setStyleSheet("font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);")
+            elif pct >= (target_att * 100.0):
+                safe = math.floor((present - target_att * total) / target_att) if total > 0 else 0
+                self.att_status_pill.setText(f"Boundary: +{max(0, safe)} Skips")
+                self.att_status_pill.setStyleSheet("font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);")
             else:
-                must = math.ceil((0.75 * total - present) / 0.25) if total > 0 else 1
+                must = math.ceil((target_att * total - present) / (1.0 - target_att)) if total > 0 else 1
                 self.att_status_pill.setText(f"Must Attend {max(1, must)}")
                 self.att_status_pill.setStyleSheet("font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.35);")
 
-            self.fitness_rings.set_values(pct, 60.0, 4)
+            self.fitness_rings.set_values(pct, sem_pct, exam_days)
+            self.recalc_split()
+
+    def _get_active_subject(self):
+        subs = db.get_subjects()
+        if not subs:
+            return {'id': 1, 'name': 'International Finance', 'sem': 3}
+        sel_id = self.combo_hud_sub.currentData() if hasattr(self, 'combo_hud_sub') else None
+        if sel_id is not None:
+            for s in subs:
+                if s['id'] == sel_id:
+                    return s
+        return subs[0]
 
     def quick_mark_present(self):
-        subs = db.get_subjects()
-        sub = subs[0] if subs else {'id': 1, 'name': 'International Finance', 'sem': 3}
+        sub = self._get_active_subject()
         today_str = datetime.now().strftime("%Y-%m-%d")
         new_log = {
             'id': int(datetime.now().timestamp() * 1000) % 2147483647,
@@ -2195,14 +2291,13 @@ class GlassmorphicHUDWidget(QWidget):
             'remarks': 'Quick logged via Glassmorphic HUD'
         }
         db.save_attendance(new_log)
-        self.refresh_data()
+        self.refresh_data(update_combo=False)
         if self.main_window:
             self.main_window.refresh_all_views()
             self.main_window.send_notification("HUD Quick Action ✓", f"Attendance logged as Present for {sub['name']}!")
 
     def quick_log_bunk(self):
-        subs = db.get_subjects()
-        sub = subs[0] if subs else {'id': 1, 'name': 'International Finance', 'sem': 3}
+        sub = self._get_active_subject()
         today_str = datetime.now().strftime("%Y-%m-%d")
         new_log = {
             'id': int(datetime.now().timestamp() * 1000) % 2147483647,
@@ -2214,10 +2309,789 @@ class GlassmorphicHUDWidget(QWidget):
             'remarks': 'Bunk logged via Glassmorphic HUD'
         }
         db.save_attendance(new_log)
-        self.refresh_data()
+        self.refresh_data(update_combo=False)
         if self.main_window:
             self.main_window.refresh_all_views()
             self.main_window.send_notification("HUD Quick Action ✕", f"Bunk recorded for {sub['name']}.")
+
+
+# ====================================================================
+# EXAM WAR ROOM MODE (Tactical Cockpit & Pomodoro Active Recall)
+# ====================================================================
+class WarRoomDialog(QDialog):
+    """
+    STUNT Exam War Room: Tactical crunch mode for exam season.
+    Features:
+    - Live T-Minus exam countdown
+    - Full Pomodoro Engine (50m Focus, 25m Sprint, 10m Break)
+    - Active Syllabus Unit Checklist with direct db update
+    - J.A.R.V.I.S. Active Recall Viva & Formula Drill with voice speech
+    """
+    def __init__(self, main_window):
+        super().__init__(main_window)
+        self.main_window = main_window
+        self.setWindowTitle("STUNT // EXAM WAR ROOM — Tactical Active Recall Cockpit")
+        self.resize(980, 640)
+        self.setMinimumSize(850, 560)
+        enable_windows_acrylic(self)
+
+        self.pomo_mode = "Deep Work"
+        self.pomo_seconds = 50 * 60
+        self.pomo_running = False
+        self.pomo_completed_sessions = 0
+
+        self.pomo_timer = QTimer(self)
+        self.pomo_timer.timeout.connect(self._pomo_tick)
+
+        self._init_ui()
+        self._load_subject_units()
+
+    def _init_ui(self):
+        main_lay = QVBoxLayout(self)
+        main_lay.setContentsMargins(16, 16, 16, 16)
+        main_lay.setSpacing(12)
+
+        # Header bar
+        hdr_frame = QFrame(self)
+        hdr_frame.setStyleSheet("""
+            QFrame {
+                background: rgba(20, 15, 30, 0.9);
+                border: 1px solid rgba(244, 63, 94, 0.4);
+                border-top: 1px solid rgba(244, 63, 94, 0.8);
+                border-radius: 12px;
+                padding: 10px 14px;
+            }
+        """)
+        h_lay = QHBoxLayout(hdr_frame)
+        h_lay.setContentsMargins(12, 8, 12, 8)
+
+        lbl_title = QLabel("⚔️ EXAM WAR ROOM // T-MINUS ENGINE", self)
+        lbl_title.setStyleSheet("font-size: 15px; font-weight: 800; color: #f43f5e; letter-spacing: 0.5px;")
+        h_lay.addWidget(lbl_title)
+
+        h_lay.addStretch()
+
+        tasks = self.main_window.data.get('tasks', [])
+        now_date = date.today()
+        upcoming = []
+        for t in tasks:
+            if t.get('status') != 'Completed' and t.get('dueDate'):
+                try:
+                    d = datetime.strptime(t['dueDate'], "%Y-%m-%d").date()
+                    diff = (d - now_date).days
+                    if diff >= 0:
+                        upcoming.append((diff, t['title']))
+                except Exception:
+                    pass
+        if upcoming:
+            upcoming.sort(key=lambda x: x[0])
+            min_days, next_title = upcoming[0]
+            exam_text = f"⏳ T-MINUS {min_days} DAYS: {next_title}"
+        else:
+            exam_text = "⏳ T-MINUS: SEMESTER PREPARATION"
+
+        self.lbl_countdown = QLabel(exam_text, self)
+        self.lbl_countdown.setStyleSheet("background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: bold; font-family: monospace;")
+        h_lay.addWidget(self.lbl_countdown)
+
+        btn_close = QPushButton("✕ Exit War Room", self)
+        btn_close.setStyleSheet("background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 11px;")
+        btn_close.clicked.connect(self.close)
+        h_lay.addWidget(btn_close)
+        main_lay.addWidget(hdr_frame)
+
+        # 3-Column Cockpit
+        cockpit = QHBoxLayout()
+        cockpit.setSpacing(12)
+
+        # COLUMN 1: Tactical Pomodoro Engine
+        col1 = QFrame(self)
+        col1.setStyleSheet("""
+            QFrame {
+                background: rgba(18, 18, 26, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-top: 1px solid rgba(255, 255, 255, 0.25);
+                border-radius: 12px;
+                padding: 12px;
+            }
+        """)
+        c1_lay = QVBoxLayout(col1)
+        c1_lay.setContentsMargins(12, 12, 12, 12)
+        c1_lay.setSpacing(10)
+
+        lbl_c1 = QLabel("⏱️ TACTICAL FOCUS ENGINE", self)
+        lbl_c1.setStyleSheet("font-size: 12px; font-weight: bold; color: #38bdf8;")
+        c1_lay.addWidget(lbl_c1)
+
+        self.combo_mode = QComboBox(self)
+        self.combo_mode.addItems(["Deep Work (50m)", "Power Sprint (25m)", "Tactical Break (10m)"])
+        self.combo_mode.setStyleSheet("background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #ffffff; padding: 6px; font-size: 12px;")
+        self.combo_mode.currentIndexChanged.connect(self._on_mode_change)
+        c1_lay.addWidget(self.combo_mode)
+
+        self.lbl_timer_big = QLabel("50:00", self)
+        self.lbl_timer_big.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_timer_big.setStyleSheet("font-size: 56px; font-weight: 800; color: #f43f5e; font-family: 'Segoe UI Variable Display', monospace; margin: 16px 0;")
+        c1_lay.addWidget(self.lbl_timer_big)
+
+        btn_row = QHBoxLayout()
+        self.btn_toggle_timer = QPushButton("▶ START CYCLE", self)
+        self.btn_toggle_timer.setStyleSheet("background: rgba(244, 63, 94, 0.2); border: 1px solid #f43f5e; color: #f43f5e; font-weight: bold; font-size: 12px; padding: 8px; border-radius: 8px;")
+        self.btn_toggle_timer.clicked.connect(self._toggle_timer)
+        btn_row.addWidget(self.btn_toggle_timer)
+
+        self.btn_reset_timer = QPushButton("↺ RESET", self)
+        self.btn_reset_timer.setStyleSheet("background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; font-size: 11px; padding: 8px; border-radius: 8px;")
+        self.btn_reset_timer.clicked.connect(self._reset_timer)
+        btn_row.addWidget(self.btn_reset_timer)
+        c1_lay.addLayout(btn_row)
+
+        self.lbl_session_count = QLabel("🔥 Cycles Conquered Today: 0", self)
+        self.lbl_session_count.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_session_count.setStyleSheet("color: #34d399; font-size: 11px; font-weight: bold; margin-top: 6px;")
+        c1_lay.addWidget(self.lbl_session_count)
+
+        c1_lay.addStretch()
+        cockpit.addWidget(col1, 3)
+
+        # COLUMN 2: Syllabus Unit Checklist
+        col2 = QFrame(self)
+        col2.setStyleSheet("""
+            QFrame {
+                background: rgba(18, 18, 26, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-top: 1px solid rgba(255, 255, 255, 0.25);
+                border-radius: 12px;
+                padding: 12px;
+            }
+        """)
+        c2_lay = QVBoxLayout(col2)
+        c2_lay.setContentsMargins(12, 12, 12, 12)
+        c2_lay.setSpacing(10)
+
+        lbl_c2 = QLabel("📚 ACTIVE REVISION TARGETS", self)
+        lbl_c2.setStyleSheet("font-size: 12px; font-weight: bold; color: #10b981;")
+        c2_lay.addWidget(lbl_c2)
+
+        self.combo_sub_select = QComboBox(self)
+        self.combo_sub_select.setStyleSheet("background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #ffffff; padding: 6px; font-size: 12px;")
+        subs = self.main_window.data.get('subjects', [])
+        for s in subs:
+            self.combo_sub_select.addItem(f"{s['name']} ({s['code']})", s['name'])
+        self.combo_sub_select.currentIndexChanged.connect(self._load_subject_units)
+        c2_lay.addWidget(self.combo_sub_select)
+
+        self.units_scroll = QScrollArea(self)
+        self.units_scroll.setWidgetResizable(True)
+        self.units_scroll.setStyleSheet("QScrollArea { border: none; background: transparent; } QScrollBar { width: 4px; }")
+        self.units_container = QWidget()
+        self.units_lay = QVBoxLayout(self.units_container)
+        self.units_lay.setContentsMargins(0, 0, 0, 0)
+        self.units_lay.setSpacing(6)
+        self.units_scroll.setWidget(self.units_container)
+        c2_lay.addWidget(self.units_scroll, 1)
+
+        btn_save_units = QPushButton("💾 Update Syllabus Progress", self)
+        btn_save_units.setStyleSheet("background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-weight: bold; font-size: 11px; padding: 6px; border-radius: 6px;")
+        btn_save_units.clicked.connect(self._save_unit_progress)
+        c2_lay.addWidget(btn_save_units)
+
+        cockpit.addWidget(col2, 4)
+
+        # COLUMN 3: J.A.R.V.I.S. Active Recall & Formula Drill
+        col3 = QFrame(self)
+        col3.setStyleSheet("""
+            QFrame {
+                background: rgba(18, 18, 26, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-top: 1px solid rgba(255, 255, 255, 0.25);
+                border-radius: 12px;
+                padding: 12px;
+            }
+        """)
+        c3_lay = QVBoxLayout(col3)
+        c3_lay.setContentsMargins(12, 12, 12, 12)
+        c3_lay.setSpacing(8)
+
+        lbl_c3 = QLabel("🤖 J.A.R.V.I.S. ACTIVE DRILLS", self)
+        lbl_c3.setStyleSheet("font-size: 12px; font-weight: bold; color: #a855f7;")
+        c3_lay.addWidget(lbl_c3)
+
+        btn_drill_viva = QPushButton("🎯 Rapid-Fire Viva Prompt", self)
+        btn_drill_viva.setStyleSheet("background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; font-weight: bold; font-size: 11px; padding: 6px; border-radius: 6px;")
+        btn_drill_viva.clicked.connect(self._drill_viva)
+        c3_lay.addWidget(btn_drill_viva)
+
+        btn_drill_dupont = QPushButton("📊 DuPont & Formula Breakdown", self)
+        btn_drill_dupont.setStyleSheet("background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.4); color: #38bdf8; font-weight: bold; font-size: 11px; padding: 6px; border-radius: 6px;")
+        btn_drill_dupont.clicked.connect(self._drill_dupont)
+        c3_lay.addWidget(btn_drill_dupont)
+
+        self.drill_output = QTextEdit(self)
+        self.drill_output.setReadOnly(True)
+        self.drill_output.setStyleSheet("""
+            QTextEdit {
+                background: #090a10;
+                color: #e2e8f0;
+                font-family: 'JetBrains Mono', 'Segoe UI Variable Text', monospace;
+                font-size: 11px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 8px;
+                padding: 8px;
+            }
+        """)
+        self.drill_output.setText("Click a drill prompt above to start active recall testing. J.A.R.V.I.S. will quiz you out loud!")
+        c3_lay.addWidget(self.drill_output, 1)
+
+        btn_speak_drill = QPushButton("🔊 Read Question Aloud", self)
+        btn_speak_drill.setStyleSheet("background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #ffffff; font-size: 11px; padding: 6px; border-radius: 6px;")
+        btn_speak_drill.clicked.connect(self._speak_current_drill)
+        c3_lay.addWidget(btn_speak_drill)
+
+        cockpit.addWidget(col3, 3)
+        main_lay.addLayout(cockpit)
+
+    def _on_mode_change(self, idx):
+        if idx == 0:
+            self.pomo_seconds = 50 * 60
+        elif idx == 1:
+            self.pomo_seconds = 25 * 60
+        else:
+            self.pomo_seconds = 10 * 60
+        mins = self.pomo_seconds // 60
+        secs = self.pomo_seconds % 60
+        self.lbl_timer_big.setText(f"{mins:02d}:{secs:02d}")
+
+    def _toggle_timer(self):
+        if self.pomo_running:
+            self.pomo_timer.stop()
+            self.pomo_running = False
+            self.btn_toggle_timer.setText("▶ RESUME CYCLE")
+            self.btn_toggle_timer.setStyleSheet("background: rgba(244, 63, 94, 0.2); border: 1px solid #f43f5e; color: #f43f5e; font-weight: bold; font-size: 12px; padding: 8px; border-radius: 8px;")
+        else:
+            self.pomo_timer.start(1000)
+            self.pomo_running = True
+            self.btn_toggle_timer.setText("⏸ PAUSE CYCLE")
+            self.btn_toggle_timer.setStyleSheet("background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; font-weight: bold; font-size: 12px; padding: 8px; border-radius: 8px;")
+
+    def _reset_timer(self):
+        self.pomo_timer.stop()
+        self.pomo_running = False
+        self._on_mode_change(self.combo_mode.currentIndex())
+        self.btn_toggle_timer.setText("▶ START CYCLE")
+        self.btn_toggle_timer.setStyleSheet("background: rgba(244, 63, 94, 0.2); border: 1px solid #f43f5e; color: #f43f5e; font-weight: bold; font-size: 12px; padding: 8px; border-radius: 8px;")
+
+    def _pomo_tick(self):
+        if self.pomo_seconds > 0:
+            self.pomo_seconds -= 1
+            mins = self.pomo_seconds // 60
+            secs = self.pomo_seconds % 60
+            self.lbl_timer_big.setText(f"{mins:02d}:{secs:02d}")
+        else:
+            self.pomo_timer.stop()
+            self.pomo_running = False
+            self.pomo_completed_sessions += 1
+            self.lbl_session_count.setText(f"🔥 Cycles Conquered Today: {self.pomo_completed_sessions}")
+            self.btn_toggle_timer.setText("▶ START CYCLE")
+            speak_text("Focus cycle completed. Well done, Akul. Take a five minute recharge.")
+            if self.main_window:
+                self.main_window.send_notification("⚔️ War Room Cycle Conquered!", "50-minute deep work session successfully completed!")
+
+    def _load_subject_units(self):
+        while self.units_lay.count():
+            item = self.units_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        selected_sub_name = self.combo_sub_select.currentData()
+        all_syl = self.main_window.data.get('syllabus', [])
+        matching_units = [u for u in all_syl if u.get('subjectName') == selected_sub_name]
+
+        self.unit_checkboxes = []
+        if not matching_units:
+            lbl_none = QLabel("No specific syllabus units configured for this subject.", self)
+            lbl_none.setStyleSheet("color: #94a3b8; font-style: italic; font-size: 11px;")
+            self.units_lay.addWidget(lbl_none)
+        else:
+            for u in matching_units:
+                cb = QCheckBox(f"Unit {u.get('unitNumber', 1)}: {u.get('title', 'Unit')}", self)
+                cb.setChecked(u.get('status') == 'Completed')
+                cb.setStyleSheet("QCheckBox { color: #f1f5f9; font-size: 11px; padding: 3px; } QCheckBox::indicator:checked { background: #10b981; }")
+                self.unit_checkboxes.append((cb, u))
+                self.units_lay.addWidget(cb)
+        self.units_lay.addStretch()
+
+    def _save_unit_progress(self):
+        if not hasattr(self, 'unit_checkboxes') or not self.unit_checkboxes:
+            return
+        updated_count = 0
+        for cb, u in self.unit_checkboxes:
+            new_status = 'Completed' if cb.isChecked() else 'In Progress'
+            if u.get('status') != new_status:
+                u['status'] = new_status
+                db.save_syllabus(u)
+                updated_count += 1
+        if self.main_window:
+            self.main_window.refresh_all_views()
+            self.main_window.send_notification("Syllabus Updated", f"{updated_count} syllabus units updated in SQLite!")
+
+    def _drill_viva(self):
+        sub = self.combo_sub_select.currentText()
+        if "Finance" in sub:
+            text = "⚡ [J.A.R.V.I.S. VIVA DRILL // International Finance]\n\n1. Explain the economic rationale behind Covered Interest Arbitrage (CIA) vs. Uncovered Interest Parity (UIP).\n\n2. How do Multinational Corporations hedge translation exposure using currency swaps?\n\n3. What is the J-Curve effect in trade balance post-currency depreciation?"
+        elif "Economics" in sub:
+            text = "⚡ [J.A.R.V.I.S. VIVA DRILL // Business Economics]\n\n1. Differentiate between Price Elasticity of Demand vs. Cross Elasticity.\n\n2. Explain the Nash Equilibrium in Oligopoly market structures.\n\n3. What causes Deadweight Loss in monopoly pricing models?"
+        else:
+            text = f"⚡ [J.A.R.V.I.S. VIVA DRILL // {sub}]\n\n1. Outline the primary conceptual framework and operational methodology of {sub}.\n\n2. Identify two critical assumptions underlying this subject's core theorem.\n\n3. How does this discipline apply to multinational strategic decision making?"
+        
+        self.drill_output.setText(text)
+        first_q = text.split("\n\n")[1].replace("1. ", "")
+        speak_text(f"Here is your viva drill question: {first_q}")
+
+    def _drill_dupont(self):
+        text = "⚡ [J.A.R.V.I.S. FORMULA DRILL // DuPont 3-Stage Model]\n\n• Formula: ROE = Net Profit Margin × Asset Turnover × Financial Leverage Multiplier\n\n• Disaggregation:\n  1. Profit Margin (Net Income / Sales) → Operational Pricing Power\n  2. Asset Turnover (Sales / Total Assets) → Capital Utilization Efficiency\n  3. Leverage Multiplier (Total Assets / Equity) → Balance Sheet Gearing Risk\n\n• Key Takeaway: High ROE driven purely by leverage indicates insolvency risk!"
+        self.drill_output.setText(text)
+        speak_text("DuPont Analysis decomposes Return on Equity into Profit Margin, Asset Turnover, and Financial Leverage.")
+
+    def _speak_current_drill(self):
+        speak_text(self.drill_output.toPlainText())
+
+
+# ====================================================================
+# ONE-CLICK LEAVE & ABSENCE DRAFTER
+# ====================================================================
+class LeaveDrafterDialog(QDialog):
+    """
+    STUNT One-Click Absence & Leave Application Generator.
+    Generates formal university leave applications and casual WhatsApp/SMS notices.
+    """
+    def __init__(self, main_window):
+        super().__init__(main_window)
+        self.main_window = main_window
+        self.setWindowTitle("STUNT // Formal Absence & Leave Application Drafter")
+        self.resize(780, 560)
+        enable_windows_acrylic(self)
+        self._init_ui()
+
+    def _init_ui(self):
+        main_lay = QVBoxLayout(self)
+        main_lay.setContentsMargins(18, 18, 18, 18)
+        main_lay.setSpacing(12)
+
+        hdr_frame = QFrame(self)
+        hdr_frame.setStyleSheet("background: rgba(20, 20, 30, 0.85); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 10px;")
+        h_lay = QHBoxLayout(hdr_frame)
+        h_lay.addWidget(QLabel("📄 <b>Official Leave & Absence Generator</b>", self))
+        h_lay.addStretch()
+        h_pill = QLabel("1-CLICK COPIABLE", self)
+        h_pill.setStyleSheet("background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: bold; font-size: 10px; padding: 2px 8px; border-radius: 4px;")
+        h_lay.addWidget(h_pill)
+        main_lay.addWidget(hdr_frame)
+
+        # Form Controls
+        form_frame = QFrame(self)
+        form_frame.setStyleSheet("background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px;")
+        f_lay = QGridLayout(form_frame)
+        f_lay.setSpacing(8)
+
+        f_lay.addWidget(QLabel("Target Subject:", self), 0, 0)
+        self.combo_sub = QComboBox(self)
+        self.combo_sub.setStyleSheet("background: #141418; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; padding: 4px;")
+        subs = self.main_window.data.get('subjects', [])
+        for s in subs:
+            self.combo_sub.addItem(f"{s['name']} ({s['code']})", s['name'])
+        f_lay.addWidget(self.combo_sub, 0, 1)
+
+        f_lay.addWidget(QLabel("Date of Absence:", self), 0, 2)
+        self.date_absent = QLineEdit(datetime.now().strftime("%B %d, %Y"), self)
+        self.date_absent.setStyleSheet("background: #141418; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; padding: 4px;")
+        f_lay.addWidget(self.date_absent, 0, 3)
+
+        f_lay.addWidget(QLabel("Reason Category:", self), 1, 0)
+        self.combo_reason = QComboBox(self)
+        self.combo_reason.setStyleSheet("background: #141418; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; padding: 4px;")
+        self.combo_reason.addItems([
+            "Medical Sickness / Health Consultation",
+            "University Fest / Academic Event Organizing Committee",
+            "Internship / Corporate Placement Interview",
+            "Family Emergency / Urgent Travel",
+            "National Case Competition / Presentation Prep"
+        ])
+        f_lay.addWidget(self.combo_reason, 1, 1)
+
+        f_lay.addWidget(QLabel("Specific Details:", self), 1, 2)
+        self.txt_reason_detail = QLineEdit("Severe viral fever and medical consultation", self)
+        self.txt_reason_detail.setStyleSheet("background: #141418; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; padding: 4px;")
+        f_lay.addWidget(self.txt_reason_detail, 1, 3)
+
+        main_lay.addWidget(form_frame)
+
+        self.combo_sub.currentIndexChanged.connect(self._regenerate_drafts)
+        self.combo_reason.currentIndexChanged.connect(self._regenerate_drafts)
+        self.txt_reason_detail.textChanged.connect(self._regenerate_drafts)
+        self.date_absent.textChanged.connect(self._regenerate_drafts)
+
+        # Tabs for Email vs WhatsApp
+        tabs = QTabWidget(self)
+        
+        tab_email = QWidget()
+        te_lay = QVBoxLayout(tab_email)
+        self.txt_email_preview = QTextEdit(self)
+        self.txt_email_preview.setStyleSheet("background: #090a10; color: #e2e8f0; font-family: 'Segoe UI Variable Text', sans-serif; font-size: 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px;")
+        te_lay.addWidget(self.txt_email_preview)
+
+        btn_copy_email = QPushButton("📋 Copy Formal Email (Subject & Body)", self)
+        btn_copy_email.setStyleSheet("background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-weight: bold; padding: 8px; border-radius: 6px;")
+        btn_copy_email.clicked.connect(self._copy_email)
+        te_lay.addWidget(btn_copy_email)
+        tabs.addTab(tab_email, "✉️ Formal Email Draft")
+
+        tab_wa = QWidget()
+        twa_lay = QVBoxLayout(tab_wa)
+        self.txt_wa_preview = QTextEdit(self)
+        self.txt_wa_preview.setStyleSheet("background: #090a10; color: #e2e8f0; font-family: 'Segoe UI Variable Text', sans-serif; font-size: 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px;")
+        twa_lay.addWidget(self.txt_wa_preview)
+
+        btn_copy_wa = QPushButton("💬 Copy WhatsApp / CR Notice", self)
+        btn_copy_wa.setStyleSheet("background: rgba(6, 182, 212, 0.2); border: 1px solid #06b6d4; color: #38bdf8; font-weight: bold; padding: 8px; border-radius: 6px;")
+        btn_copy_wa.clicked.connect(self._copy_wa)
+        twa_lay.addWidget(btn_copy_wa)
+        tabs.addTab(tab_wa, "💬 WhatsApp / SMS Draft")
+
+        main_lay.addWidget(tabs, 1)
+
+        self.lbl_status = QLabel("", self)
+        self.lbl_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_status.setStyleSheet("color: #34d399; font-size: 11px; font-weight: bold;")
+        main_lay.addWidget(self.lbl_status)
+
+        self._regenerate_drafts()
+
+    def _regenerate_drafts(self):
+        prof = self.main_window.profile
+        sub_name = self.combo_sub.currentData() or "International Finance"
+        date_val = self.date_absent.text().strip() or "Upcoming Class"
+        cat_val = self.combo_reason.currentText()
+        reason_detail = self.txt_reason_detail.text().strip() or cat_val
+
+        fac_name = "Professor"
+        for s in self.main_window.data.get('timetable', []):
+            if s.get('subject') == sub_name and s.get('faculty'):
+                fac_name = s['faculty']
+                break
+
+        email_text = f"""Subject: Formal Leave of Absence Application: {prof.get('name', 'Akul Bhatnagar')} - {sub_name} ({date_val})
+
+Respected {fac_name},
+
+I am writing to formally request leave of absence from the upcoming lecture of {sub_name} scheduled on {date_val}, on account of {reason_detail} ({cat_val}).
+
+I have arranged to collect the notes and review the core lecture concepts discussed during class from my peers to ensure zero disruption to my academic coursework.
+
+I kindly request you to approve my absence and mark my attendance record accordingly. Appropriate documentation / medical certificates will be submitted upon my return to campus.
+
+Thanking you for your understanding.
+
+Yours sincerely,
+{prof.get('name', 'Akul Bhatnagar')}
+Roll No / Student ID: {prof.get('batch', 'STU-2026-NMIMS')}
+{prof.get('course', 'BBA International Business')} • Semester {prof.get('totalSemesters', 3)}
+{prof.get('college', 'NMIMS Mumbai')}"""
+
+        wa_text = f"Good morning {fac_name}, this is {prof.get('name', 'Akul')} ({prof.get('course', 'BBA IB')}). I won't be able to attend today's {sub_name} lecture on {date_val} due to {reason_detail}. I have coordinated with my classmates for the notes and will submit the leave form accordingly. Thank you!"
+
+        self.txt_email_preview.setText(email_text)
+        self.txt_wa_preview.setText(wa_text)
+
+    def _copy_email(self):
+        clipboard = QApplication.clipboard()
+        if clipboard:
+            clipboard.setText(self.txt_email_preview.toPlainText())
+        self.lbl_status.setText("✓ Copied Formal Email to Clipboard! Ready to paste in Gmail / Outlook.")
+        QTimer.singleShot(2500, lambda: self.lbl_status.setText(""))
+
+    def _copy_wa(self):
+        clipboard = QApplication.clipboard()
+        if clipboard:
+            clipboard.setText(self.txt_wa_preview.toPlainText())
+        self.lbl_status.setText("✓ Copied WhatsApp Text to Clipboard! Ready to send.")
+        QTimer.singleShot(2500, lambda: self.lbl_status.setText(""))
+
+
+# ====================================================================
+# J.A.R.V.I.S. MORNING OPERATIONAL BRIEFING DIALOG
+# ====================================================================
+class MorningBriefingDialog(QDialog):
+    """
+    Displays and reads aloud the J.A.R.V.I.S. Mark 58 Daily Operational Briefing.
+    """
+    def __init__(self, main_window, briefing_text=None):
+        super().__init__(main_window)
+        self.main_window = main_window
+        if not briefing_text and hasattr(main_window, 'generate_morning_briefing'):
+            self.briefing_text = main_window.generate_morning_briefing()
+        else:
+            self.briefing_text = briefing_text or "Operational briefing initialized."
+        self.setWindowTitle("STUNT // J.A.R.V.I.S. Mark 58 Morning Protocol")
+        self.resize(580, 420)
+        enable_windows_acrylic(self)
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(18, 18, 18, 18)
+        lay.setSpacing(12)
+
+        hdr = QFrame(self)
+        hdr.setStyleSheet("background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px;")
+        h_lay = QHBoxLayout(hdr)
+        h_lay.addWidget(QLabel("🎙️ <b>J.A.R.V.I.S. Mark 58 Daily Briefing</b>", self))
+        h_lay.addStretch()
+        h_pill = QLabel("VOICE SYNTHESIS ACTIVE", self)
+        h_pill.setStyleSheet("background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px;")
+        h_lay.addWidget(h_pill)
+        lay.addWidget(hdr)
+
+        self.txt = QTextEdit(self)
+        self.txt.setReadOnly(True)
+        self.txt.setStyleSheet("background: #090a10; color: #f1f5f9; font-size: 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; line-height: 1.6;")
+        self.txt.setText(self.briefing_text)
+        lay.addWidget(self.txt, 1)
+
+        b_row = QHBoxLayout()
+        btn_replay = QPushButton("🔊 Replay Audio Briefing", self)
+        btn_replay.setStyleSheet("background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; font-weight: bold; padding: 8px; border-radius: 6px;")
+        btn_replay.clicked.connect(lambda: speak_text(self.briefing_text))
+        b_row.addWidget(btn_replay)
+
+        btn_war = QPushButton("⚔️ Open War Room", self)
+        btn_war.setStyleSheet("background: rgba(244, 63, 94, 0.2); border: 1px solid #f43f5e; color: #fb7185; font-weight: bold; padding: 8px; border-radius: 6px;")
+        btn_war.clicked.connect(lambda: (self.accept(), self.main_window.open_war_room()))
+        b_row.addWidget(btn_war)
+
+        btn_close = QPushButton("Dismiss", self)
+        btn_close.clicked.connect(self.accept)
+        b_row.addWidget(btn_close)
+        lay.addLayout(b_row)
+
+
+# ====================================================================
+# DYNAMIC CAMPUS LOCKSCREEN & WALLPAPER ENGINE
+# ====================================================================
+def generate_campus_wallpaper(main_window):
+    """
+    Renders an obsidian dark aesthetic 1920x1080 wallpaper containing:
+    - Akul's profile & NMIMS institution branding
+    - Overall attendance & safe bunks radar
+    - Today's full lecture timetable with rooms & faculties
+    - Top pending academic deadlines
+    - Inspirational quote
+    Sets as Windows desktop wallpaper natively via ctypes.
+    """
+    try:
+        width, height = 1920, 1080
+        img = QImage(width, height, QImage.Format.Format_ARGB32)
+        img.fill(QColor(8, 8, 12))
+
+        painter = QPainter(img)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+        # Background gradient
+        bg_grad = QLinearGradient(0, 0, width, height)
+        bg_grad.setColorAt(0.0, QColor(9, 10, 18))
+        bg_grad.setColorAt(0.5, QColor(14, 16, 28))
+        bg_grad.setColorAt(1.0, QColor(6, 7, 10))
+        painter.fillRect(img.rect(), bg_grad)
+
+        # Decorative ambient rings / grid
+        pen_grid = QPen(QColor(255, 255, 255, 8), 1)
+        painter.setPen(pen_grid)
+        for x in range(0, width, 80):
+            painter.drawLine(x, 0, x, height)
+        for y in range(0, height, 80):
+            painter.drawLine(0, y, width, y)
+
+        # Header section
+        painter.setPen(QColor(56, 189, 248))
+        painter.setFont(QFont("Segoe UI Variable Display", 22, QFont.Weight.ExtraBold))
+        painter.drawText(80, 80, "⚡ STUNT // STUDENT OPERATING SYSTEM")
+
+        profile = main_window.profile
+        painter.setPen(QColor(148, 163, 184))
+        painter.setFont(QFont("Segoe UI Variable Text", 13, QFont.Weight.DemiBold))
+        painter.drawText(80, 110, f"{profile.get('name', 'Akul Bhatnagar')} • {profile.get('college', 'NMIMS Mumbai')} ({profile.get('course', 'BBA International Business')})")
+
+        # Current Date
+        now_dt = datetime.now()
+        painter.setPen(QColor(255, 255, 255, 220))
+        painter.setFont(QFont("Segoe UI Variable Text", 16, QFont.Weight.Bold))
+        date_str = now_dt.strftime("%A, %B %d, %Y")
+        painter.drawText(width - 450, 80, date_str)
+
+        # Panel 1: Attendance Bunk Radar (Left Panel)
+        p1_rect = QRectF(80, 150, 480, 420)
+        painter.setPen(QPen(QColor(255, 255, 255, 25), 1))
+        painter.setBrush(QBrush(QColor(18, 18, 28, 210)))
+        painter.drawRoundedRect(p1_rect, 16, 16)
+
+        painter.setPen(QColor(16, 185, 129))
+        painter.setFont(QFont("Segoe UI Variable Text", 13, QFont.Weight.Bold))
+        painter.drawText(110, 195, "📊 ATTENDANCE & BUNK RADAR")
+
+        logs = db.get_attendance_logs()
+        total = len(logs)
+        present = sum(1 for l in logs if l.get('status') == 'Present')
+        pct = (present / total * 100.0) if total > 0 else 0.0
+        target_att = profile.get('targetAttendancePct', 75.0) / 100.0
+
+        painter.setPen(QColor(255, 255, 255))
+        painter.setFont(QFont("Segoe UI Variable Display", 48, QFont.Weight.ExtraBold))
+        painter.drawText(110, 270, f"{pct:.1f}%")
+
+        painter.setPen(QColor(148, 163, 184))
+        painter.setFont(QFont("Segoe UI Variable Text", 12))
+        painter.drawText(110, 305, f"{present} classes attended out of {total} held")
+
+        # Status badge
+        safe = math.floor((present - target_att * total) / target_att) if total > 0 else 0
+        status_text = f"+{max(0, safe)} SAFE BUNKS AVAILABLE" if pct >= 75 else "ATTENDANCE RECOVERY CRITICAL"
+        status_col = QColor(16, 185, 129) if pct >= 75 else QColor(244, 63, 94)
+
+        badge_rect = QRectF(110, 335, 320, 38)
+        painter.setPen(QPen(status_col, 1))
+        painter.setBrush(QBrush(QColor(status_col.red(), status_col.green(), status_col.blue(), 35)))
+        painter.drawRoundedRect(badge_rect, 8, 8)
+
+        painter.setPen(status_col)
+        painter.setFont(QFont("Segoe UI Variable Text", 11, QFont.Weight.Bold))
+        painter.drawText(badge_rect, Qt.AlignmentFlag.AlignCenter, status_text)
+
+        painter.setPen(QColor(148, 163, 184))
+        painter.setFont(QFont("Segoe UI Variable Text", 11))
+        painter.drawText(110, 420, f"Minimum Target: {target_att*100:.0f}% Eligibility Threshold")
+        painter.drawText(110, 445, "100% On-Device Local SQLite • Zero Telemetry")
+
+        # Panel 2: Today's Lecture Timetable (Center Panel)
+        p2_rect = QRectF(590, 150, 740, 780)
+        painter.setPen(QPen(QColor(255, 255, 255, 25), 1))
+        painter.setBrush(QBrush(QColor(18, 18, 28, 210)))
+        painter.drawRoundedRect(p2_rect, 16, 16)
+
+        painter.setPen(QColor(56, 189, 248))
+        painter.setFont(QFont("Segoe UI Variable Text", 13, QFont.Weight.Bold))
+        day_name = now_dt.strftime("%A")
+        painter.drawText(620, 195, f"📅 TODAY'S LECTURE MATRIX ({day_name.upper()})")
+
+        tt_slots = [s for s in main_window.data.get('timetable', []) if s.get('day') == day_name]
+        if not tt_slots:
+            painter.setPen(QColor(148, 163, 184))
+            painter.setFont(QFont("Segoe UI Variable Text", 13, QFont.Weight.Medium))
+            painter.drawText(620, 245, "Zero lectures scheduled today. Enjoy your study sprint or project prep!")
+        else:
+            y_offset = 230
+            for s in tt_slots[:6]:
+                slot_box = QRectF(620, y_offset, 680, 80)
+                painter.setPen(QPen(QColor(255, 255, 255, 20), 1))
+                painter.setBrush(QBrush(QColor(25, 25, 38, 180)))
+                painter.drawRoundedRect(slot_box, 10, 10)
+
+                painter.setPen(QColor(255, 255, 255))
+                painter.setFont(QFont("Segoe UI Variable Text", 13, QFont.Weight.Bold))
+                painter.drawText(640, y_offset + 32, s.get('subject', 'Lecture'))
+
+                painter.setPen(QColor(148, 163, 184))
+                painter.setFont(QFont("Segoe UI Variable Text", 11))
+                painter.drawText(640, y_offset + 60, f"📍 {s.get('location', 'Room')} • 👤 {s.get('faculty', 'Faculty')}")
+
+                # Time pill
+                time_pill = QRectF(1120, y_offset + 22, 160, 36)
+                painter.setPen(QPen(QColor(56, 189, 248, 80), 1))
+                painter.setBrush(QBrush(QColor(56, 189, 248, 25)))
+                painter.drawRoundedRect(time_pill, 6, 6)
+
+                painter.setPen(QColor(56, 189, 248))
+                painter.setFont(QFont("Segoe UI Variable Text", 11, QFont.Weight.Bold))
+                time_str = f"{s.get('start', '')} - {s.get('end', '')}"
+                painter.drawText(time_pill, Qt.AlignmentFlag.AlignCenter, time_str)
+
+                y_offset += 95
+
+        # Panel 3: Tasks & Academic Velocity (Bottom Left)
+        p3_rect = QRectF(80, 600, 480, 330)
+        painter.setPen(QPen(QColor(255, 255, 255, 25), 1))
+        painter.setBrush(QBrush(QColor(18, 18, 28, 210)))
+        painter.drawRoundedRect(p3_rect, 16, 16)
+
+        painter.setPen(QColor(245, 158, 11))
+        painter.setFont(QFont("Segoe UI Variable Text", 13, QFont.Weight.Bold))
+        painter.drawText(110, 645, "🎯 PENDING ASSIGNMENTS & DELIVERABLES")
+
+        tasks = [t for t in main_window.data.get('tasks', []) if t.get('status') != 'Completed']
+        if not tasks:
+            painter.setPen(QColor(148, 163, 184))
+            painter.setFont(QFont("Segoe UI Variable Text", 12))
+            painter.drawText(110, 690, "All assignments cleared! Zero pending tasks on your board.")
+        else:
+            ty = 680
+            for t in tasks[:4]:
+                painter.setPen(QColor(255, 255, 255))
+                painter.setFont(QFont("Segoe UI Variable Text", 12, QFont.Weight.DemiBold))
+                painter.drawText(110, ty + 20, f"• {t.get('title', 'Task')}")
+
+                painter.setPen(QColor(245, 158, 11))
+                painter.setFont(QFont("Segoe UI Variable Text", 10, QFont.Weight.Bold))
+                painter.drawText(400, ty + 20, f"Due {t.get('dueDate', 'Soon')}")
+                ty += 42
+
+        # Panel 4: J.A.R.V.I.S. Mark 58 Sovereign Quote (Right Panel)
+        p4_rect = QRectF(1360, 150, 480, 780)
+        painter.setPen(QPen(QColor(255, 255, 255, 25), 1))
+        painter.setBrush(QBrush(QColor(18, 18, 28, 210)))
+        painter.drawRoundedRect(p4_rect, 16, 16)
+
+        painter.setPen(QColor(168, 85, 247))
+        painter.setFont(QFont("Segoe UI Variable Text", 13, QFont.Weight.Bold))
+        painter.drawText(1390, 195, "🤖 J.A.R.V.I.S. MARK 58 CORE")
+
+        painter.setPen(QColor(255, 255, 255, 230))
+        painter.setFont(QFont("Segoe UI Variable Text", 12))
+        q_lines = [
+            "“Discipline equals freedom.",
+            "Your academic journey is self-sovereign.",
+            "Protect your focus, keep your attendance",
+            "above the line, and execute every cycle.”",
+            "",
+            "— J.A.R.V.I.S. Mark 58 (Apex Core)"
+        ]
+        qy = 240
+        for ql in q_lines:
+            painter.drawText(1390, qy, ql)
+            qy += 28
+
+        # Footer banner
+        painter.setPen(QColor(148, 163, 184, 180))
+        painter.setFont(QFont("Segoe UI Variable Text", 11))
+        painter.drawText(80, 1030, "Generated via STUNT Desktop Platform • Localhost 127.0.0.1 • 100% Private Student Software")
+
+        painter.end()
+
+        # Save wallpaper
+        save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stunt_campus_wallpaper.png")
+        img.save(save_path)
+
+        # Set as desktop wallpaper natively on Windows
+        try:
+            import ctypes
+            abs_path = os.path.abspath(save_path)
+            ctypes.windll.user32.SystemParametersInfoW(20, 0, abs_path, 3)
+            main_window.send_notification("🖼️ Wallpaper Applied!", "STUNT live campus lockscreen wallpaper has been set!")
+        except Exception as e:
+            main_window.send_notification("Wallpaper Saved", f"Saved to {save_path}")
+
+        return save_path
+    except Exception as e:
+        if hasattr(main_window, 'send_notification'):
+            main_window.send_notification("Wallpaper Error", str(e))
+        return None
 
 
 # Native Main Window
@@ -2235,6 +3109,7 @@ class StuntMainWindow(QMainWindow):
         self.tray_icon = QSystemTrayIcon(self)
         if os.path.exists(icon_path): self.tray_icon.setIcon(QIcon(icon_path))
         self.tray_icon.setToolTip("STUNT — Student Tracker Platform")
+        self.tray_icon.activated.connect(self.on_tray_activated)
         self.tray_icon.show()
 
         db.init_db()
@@ -2261,6 +3136,7 @@ class StuntMainWindow(QMainWindow):
 
         self.active_sem = 1
         self.init_ui()
+        self.update_tray_icon()
 
     def update_live_clock(self):
         if hasattr(self, 'lbl_clock') and self.lbl_clock:
@@ -2276,18 +3152,29 @@ class StuntMainWindow(QMainWindow):
     def check_lecture_alarms(self):
         today_str = datetime.now().strftime("%A")
         today_date = date.today().strftime("%Y-%m-%d")
-        now_time = datetime.now()
+        now_mins = datetime.now().hour * 60 + datetime.now().minute
         for slot in self.data.get('timetable', []):
-            if slot['day'] == today_str:
-                try:
-                    slot_t = datetime.strptime(slot['start'], "%I:%M %p").replace(year=now_time.year, month=now_time.month, day=now_time.day)
-                    diff = (slot_t - now_time).total_seconds()
-                    alarm_key = (slot['id'], today_date)
-                    if 0 <= diff <= 900 and alarm_key not in self.notified_lecture_alarms: # Within 15 mins
-                        self.notified_lecture_alarms.add(alarm_key)
-                        self.send_notification("Upcoming Lecture Alarm! ⏰", f"Class '{slot['subject']}' in 15 mins at {slot['location']}")
-                except ValueError:
-                    pass
+            if slot.get('day', '').lower() == today_str.lower():
+                start_mins = parse_time_to_minutes(slot.get('start', ''))
+                if start_mins is None:
+                    continue
+                diff_mins = start_mins - now_mins
+                alarm_key = (slot.get('id', slot.get('subject')), today_date)
+                # Within 15 minutes before lecture
+                if 0 <= diff_mins <= 15 and alarm_key not in self.notified_lecture_alarms:
+                    self.notified_lecture_alarms.add(alarm_key)
+                    mins_left = max(1, diff_mins)
+                    sub = slot.get('subject', 'Upcoming Lecture')
+                    loc = slot.get('location', 'Designated Hall')
+                    fac = slot.get('instructor', slot.get('faculty', 'Faculty'))
+                    self.send_notification(
+                        f"Lecture Radar ⏰ ({mins_left}m left)",
+                        f"'{sub}' commences in {mins_left} mins at {loc} (Prof. {fac})"
+                    )
+                    try:
+                        speak_text(f"Sir, your lecture in {sub} begins in {mins_left} minutes in room {loc}.")
+                    except Exception:
+                        pass
 
     def apply_theme(self):
         theme_name = self.profile.get('themeName', 'Glitchcore Dark')
@@ -2344,6 +3231,21 @@ class StuntMainWindow(QMainWindow):
             self.nav_btns.append(btn)
 
         dock_layout.addStretch()
+
+        war_btn = QPushButton("⚔️", self); war_btn.setToolTip("Exam War Room Mode (Ctrl+Shift+W)"); war_btn.setFixedSize(44, 44)
+        war_btn.setStyleSheet("background: #16192d; border: 1px solid rgba(244, 63, 94, 0.4); border-radius: 8px; font-size: 16px;")
+        war_btn.clicked.connect(self.open_war_room)
+        dock_layout.addWidget(war_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        brief_btn = QPushButton("🎙️", self); brief_btn.setToolTip("J.A.R.V.I.S. Morning Briefing (Ctrl+M)"); brief_btn.setFixedSize(44, 44)
+        brief_btn.setStyleSheet("background: #16192d; border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 8px; font-size: 16px;")
+        brief_btn.clicked.connect(self.trigger_morning_briefing)
+        dock_layout.addWidget(brief_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        leave_btn = QPushButton("📄", self); leave_btn.setToolTip("Formal Leave & Absence Drafter (Ctrl+L)"); leave_btn.setFixedSize(44, 44)
+        leave_btn.setStyleSheet("background: #16192d; border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 8px; font-size: 16px;")
+        leave_btn.clicked.connect(self.open_leave_drafter)
+        dock_layout.addWidget(leave_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         hud_btn = QPushButton("🪟", self); hud_btn.setToolTip("Glassmorphic HUD & Widgets (Ctrl+W)"); hud_btn.setFixedSize(44, 44)
         hud_btn.setStyleSheet("background: #16192d; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; font-size: 16px;")
@@ -2515,6 +3417,24 @@ class StuntMainWindow(QMainWindow):
         btn_copy.clicked.connect(self.open_copyright_dialog)
         topbar_layout.addWidget(btn_copy)
 
+        btn_war = QPushButton("⚔️ War Room", self)
+        btn_war.setStyleSheet("background: rgba(244, 63, 94, 0.15); border: 1px solid #f43f5e; color: #f43f5e; font-size: 11px; padding: 5px 10px; border-radius: 6px; font-weight: bold;")
+        btn_war.setToolTip("Launch Exam War Room (Ctrl+Shift+W)")
+        btn_war.clicked.connect(self.open_war_room)
+        topbar_layout.addWidget(btn_war)
+
+        btn_brief = QPushButton("🎙️ Briefing", self)
+        btn_brief.setStyleSheet("background: rgba(234, 179, 8, 0.15); border: 1px solid #eab308; color: #facc15; font-size: 11px; padding: 5px 10px; border-radius: 6px; font-weight: bold;")
+        btn_brief.setToolTip("J.A.R.V.I.S. Audio Morning Briefing (Ctrl+M)")
+        btn_brief.clicked.connect(self.trigger_morning_briefing)
+        topbar_layout.addWidget(btn_brief)
+
+        btn_leave = QPushButton("📄 Leave Drafter", self)
+        btn_leave.setStyleSheet("background: rgba(14, 165, 233, 0.15); border: 1px solid #0ea5e9; color: #38bdf8; font-size: 11px; padding: 5px 10px; border-radius: 6px; font-weight: bold;")
+        btn_leave.setToolTip("One-Click Absence Application Drafter (Ctrl+L)")
+        btn_leave.clicked.connect(self.open_leave_drafter)
+        topbar_layout.addWidget(btn_leave)
+
         btn_exp_pdf = QPushButton("📄 PDF Report", self)
         btn_exp_pdf.setProperty("class", "primary")
         btn_exp_pdf.setStyleSheet("font-size: 11px; padding: 5px 12px;")
@@ -2639,6 +3559,15 @@ class StuntMainWindow(QMainWindow):
 
         sc_hud = QShortcut(QKeySequence("Ctrl+W"), self)
         sc_hud.activated.connect(self.toggle_glass_hud_widget)
+
+        sc_war = QShortcut(QKeySequence("Ctrl+Shift+W"), self)
+        sc_war.activated.connect(self.open_war_room)
+
+        sc_brief = QShortcut(QKeySequence("Ctrl+M"), self)
+        sc_brief.activated.connect(self.trigger_morning_briefing)
+
+        sc_leave = QShortcut(QKeySequence("Ctrl+L"), self)
+        sc_leave.activated.connect(self.open_leave_drafter)
 
         self.switch_view(0)
         self.refresh_all_views()
@@ -3902,6 +4831,7 @@ class StuntMainWindow(QMainWindow):
         self.refresh_dash_schedule()
 
         self.finance_canvas.update_charts(self.data['finances'], self.profile)
+        self.update_tray_icon()
 
     def refresh_dash_schedule(self):
         if not hasattr(self, 'dash_sched_content_lay'):
@@ -4511,7 +5441,9 @@ class StuntMainWindow(QMainWindow):
             info_lay.addWidget(lbl_date)
             info_lay.addStretch()
 
-            rem_text = "🎉 Goal Achieved!" if is_completed else f"Remaining: ₹{rem:,.0f}"
+            is_masked = getattr(self, 'privacy_masked', False)
+            rem_str = "₹••••••" if is_masked else f"₹{rem:,.0f}"
+            rem_text = "🎉 Goal Achieved!" if is_completed else f"Remaining: {rem_str}"
             lbl_rem = QLabel(rem_text, self)
             lbl_rem.setStyleSheet("font-size: 11px; font-weight: bold; color: #10b981;" if is_completed else "font-size: 11px; color: #f59e0b;")
             info_lay.addWidget(lbl_rem)
@@ -4539,7 +5471,9 @@ class StuntMainWindow(QMainWindow):
 
             # Bottom metrics & action buttons
             met_lay = QHBoxLayout()
-            lbl_amt = QLabel(f"Saved: <b style='color: #ffffff;'>₹{saved:,.0f}</b> / ₹{target:,.0f} <span style='color: {'#10b981' if is_completed else '#38bdf8'}; font-weight: bold;'>({pct:.1f}%)</span>", self)
+            saved_str = "₹••••••" if is_masked else f"₹{saved:,.0f}"
+            target_str = "₹••••••" if is_masked else f"₹{target:,.0f}"
+            lbl_amt = QLabel(f"Saved: <b style='color: #ffffff;'>{saved_str}</b> / {target_str} <span style='color: {'#10b981' if is_completed else '#38bdf8'}; font-weight: bold;'>({pct:.1f}%)</span>", self)
             lbl_amt.setStyleSheet("font-size: 12px; color: #cbd5e1;")
             met_lay.addWidget(lbl_amt)
             met_lay.addStretch()
@@ -4675,13 +5609,14 @@ class StuntMainWindow(QMainWindow):
     # GRADES TABLE
     def refresh_grades_table(self):
         grades = self.data.get('grades', [])
+        is_masked = getattr(self, 'privacy_masked', False)
         self.grades_table.setRowCount(len(grades))
         for row, g in enumerate(grades):
             self.grades_table.setItem(row, 0, QTableWidgetItem(f"Sem {g['sem']}"))
             self.grades_table.setItem(row, 1, QTableWidgetItem(g['subjectCode']))
             self.grades_table.setItem(row, 2, QTableWidgetItem(g['subjectName']))
-            self.grades_table.setItem(row, 3, QTableWidgetItem(str(g['credits'])))
-            self.grades_table.setItem(row, 4, QTableWidgetItem(str(g['gradePoints'])))
+            self.grades_table.setItem(row, 3, QTableWidgetItem("••" if is_masked else str(g['credits'])))
+            self.grades_table.setItem(row, 4, QTableWidgetItem("••" if is_masked else str(g['gradePoints'])))
 
             btn_del = QPushButton("Delete", self)
             btn_del.setProperty("class", "danger")
@@ -5880,6 +6815,288 @@ class StuntMainWindow(QMainWindow):
         db.load_sample_data()
         self.refresh_all_views()
         QMessageBox.information(self, "Success", "Sample data loaded!")
+
+    # ================================================================
+    # NEXT-GEN TACTICAL EXTENSIONS (War Room, Leave Drafter, Briefing, Mini-HUD)
+    # ================================================================
+    def open_war_room(self):
+        dlg = WarRoomDialog(self)
+        dlg.exec()
+
+    def open_leave_drafter(self):
+        dlg = LeaveDrafterDialog(self)
+        dlg.exec()
+
+    def trigger_morning_briefing(self):
+        text = self.generate_morning_briefing()
+        dlg = MorningBriefingDialog(self, text)
+        speak_text(text)
+        dlg.exec()
+
+    def generate_morning_briefing(self):
+        profile = self.profile
+        name = profile.get('name', 'Akul')
+        now_dt = datetime.now()
+        day_str = now_dt.strftime("%A")
+        date_str = now_dt.strftime("%B %d, %Y")
+
+        slots = [s for s in self.data.get('timetable', []) if s.get('day', '').lower() == day_str.lower()]
+
+        logs = db.get_attendance_logs()
+        total = len(logs)
+        present = sum(1 for l in logs if l.get('status') == 'Present')
+        pct = (present / total * 100.0) if total > 0 else 0.0
+        target_att = profile.get('targetAttendancePct', 75.0) / 100.0
+        safe = math.floor((present - target_att * total) / target_att) if total > 0 else 0
+
+        pending_tasks = [t for t in self.data.get('tasks', []) if t.get('status') != 'Completed']
+
+        lines = []
+        lines.append(f"Good morning, {name}. Today is {day_str}, {date_str}.")
+        lines.append(f"Overall academic attendance is currently {pct:.1f}%.")
+        if pct >= 75.0:
+            lines.append(f"You have a tactical safety buffer of {max(0, safe)} allowable bunks before dropping below 75%.")
+        else:
+            lines.append("Alert: Attendance is under the 75% threshold. Recovery protocol is recommended.")
+
+        if slots:
+            def get_mins(slot):
+                m = parse_time_to_minutes(slot.get('start', ''))
+                return m if m is not None else 9999
+            slots.sort(key=get_mins)
+            lines.append(f"You have {len(slots)} lectures scheduled for today:")
+            for s in slots:
+                lines.append(f"• {s.get('subject')} at {s.get('start')} in room {s.get('location', 'Campus')} (Prof. {s.get('instructor', s.get('faculty', 'Faculty'))})")
+        else:
+            lines.append("Zero lectures scheduled for today. An optimal opportunity for assignment completion and War Room study sessions.")
+
+        if pending_tasks:
+            lines.append(f"Active deliverables: {len(pending_tasks)} pending assignments on your board. Priority target: {pending_tasks[0].get('title')} due {pending_tasks[0].get('dueDate', 'soon')}.")
+        else:
+            lines.append("All academic deliverables are cleared.")
+
+        lines.append("All local systems are nominal. Have an outstanding and sovereign day, sir.")
+        return "\n\n".join(lines)
+
+    def get_next_lecture(self):
+        today_str = datetime.now().strftime("%A")
+        now_mins = datetime.now().hour * 60 + datetime.now().minute
+        slots = [s for s in self.data.get('timetable', []) if s.get('day', '').lower() == today_str.lower()]
+        upcoming = []
+        for s in slots:
+            m = parse_time_to_minutes(s.get('start', ''))
+            if m is not None and m >= now_mins:
+                upcoming.append((m, s))
+        if upcoming:
+            upcoming.sort(key=lambda x: x[0])
+            return upcoming[0][1]
+        return None
+
+    def quick_mark_next_present(self):
+        next_lec = self.get_next_lecture()
+        if not next_lec:
+            subs = self.data.get('subjects', [])
+            if not subs:
+                self.send_notification("Quick Action", "No subjects configured in system.")
+                return
+            sub_id = subs[0]['id']
+            sub_name = subs[0]['name']
+            sem = subs[0].get('sem', 1)
+        else:
+            sub_id = next_lec.get('subjectId', next_lec.get('subject'))
+            sub_name = next_lec.get('subject', 'Lecture')
+            sem = next_lec.get('sem', 1)
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        new_log = {
+            'id': int(datetime.now().timestamp() * 1000) % 2147483647,
+            'sem': sem,
+            'subjectId': sub_id,
+            'subjectName': sub_name,
+            'date': today_str,
+            'status': 'Present',
+            'remarks': 'Marked Present via Taskbar Mini-HUD'
+        }
+        db.save_attendance(new_log)
+        self.refresh_all_views()
+        self.send_notification("Taskbar Mini-HUD ✓", f"Attendance logged as Present for {sub_name}!")
+
+    def quick_log_next_bunk(self):
+        next_lec = self.get_next_lecture()
+        if not next_lec:
+            subs = self.data.get('subjects', [])
+            if not subs:
+                self.send_notification("Quick Action", "No subjects configured in system.")
+                return
+            sub_id = subs[0]['id']
+            sub_name = subs[0]['name']
+            sem = subs[0].get('sem', 1)
+        else:
+            sub_id = next_lec.get('subjectId', next_lec.get('subject'))
+            sub_name = next_lec.get('subject', 'Lecture')
+            sem = next_lec.get('sem', 1)
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        new_log = {
+            'id': int(datetime.now().timestamp() * 1000) % 2147483647,
+            'sem': sem,
+            'subjectId': sub_id,
+            'subjectName': sub_name,
+            'date': today_str,
+            'status': 'Absent',
+            'remarks': 'Bunk logged via Taskbar Mini-HUD'
+        }
+        db.save_attendance(new_log)
+        self.refresh_all_views()
+        self.send_notification("Taskbar Mini-HUD ✕", f"Bunk recorded for {sub_name}.")
+
+    def show_and_raise(self):
+        self.showNormal()
+        self.activateWindow()
+        self.raise_()
+
+    def on_tray_activated(self, reason):
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            if self.isVisible():
+                if self.isMinimized():
+                    self.showNormal()
+                    self.activateWindow()
+                else:
+                    self.hide()
+            else:
+                self.showNormal()
+                self.activateWindow()
+                self.raise_()
+        elif reason == QSystemTrayIcon.ActivationReason.Context:
+            self.update_tray_menu()
+
+    def update_tray_icon(self):
+        try:
+            logs = db.get_attendance_logs()
+            total = len(logs)
+            present = sum(1 for l in logs if l.get('status') == 'Present')
+            pct = (present / total * 100.0) if total > 0 else 0.0
+            target_pct = self.profile.get('targetAttendancePct', 75.0)
+
+            if pct >= target_pct:
+                dot_color = QColor(16, 185, 129)
+                status_emoji = "🟢"
+                status_text = "Safe"
+            elif pct >= target_pct - 5.0:
+                dot_color = QColor(245, 158, 11)
+                status_emoji = "🟡"
+                status_text = "Borderline"
+            else:
+                dot_color = QColor(239, 68, 68)
+                status_emoji = "🔴"
+                status_text = "Critical"
+
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(Qt.GlobalColor.transparent)
+
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+            painter.setPen(QPen(QColor(255, 255, 255, 30), 1.5))
+            painter.setBrush(QBrush(QColor(13, 15, 26, 240)))
+            painter.drawRoundedRect(2, 2, 60, 60, 14, 14)
+
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(dot_color))
+            painter.drawEllipse(46, 6, 12, 12)
+
+            painter.setPen(QColor(255, 255, 255))
+            font = QFont("Segoe UI Variable Display", 18, QFont.Weight.Bold)
+            painter.setFont(font)
+            att_text = f"{int(round(pct))}%" if total > 0 else "ST"
+            painter.drawText(QRect(2, 16, 60, 40), Qt.AlignmentFlag.AlignCenter, att_text)
+
+            painter.end()
+
+            self.tray_icon.setIcon(QIcon(pixmap))
+
+            next_lec = self.get_next_lecture()
+            if next_lec:
+                next_str = f"\nNext: {next_lec.get('subject', 'Lecture')} @ {next_lec.get('start', '')} ({next_lec.get('location', 'Room')})"
+            else:
+                next_str = "\nNext: No more classes today"
+
+            self.tray_icon.setToolTip(
+                f"STUNT OS // Taskbar Mini-HUD\nAttendance: {pct:.1f}% ({status_emoji} {status_text}){next_str}"
+            )
+            self.update_tray_menu()
+        except Exception:
+            pass
+
+    def update_tray_menu(self):
+        try:
+            menu = QMenu(self)
+            menu.setStyleSheet("""
+                QMenu {
+                    background-color: #0f111e;
+                    color: #f1f5f9;
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    border-radius: 8px;
+                    padding: 6px;
+                    font-family: 'Segoe UI Variable Text', sans-serif;
+                    font-size: 12px;
+                }
+                QMenu::item {
+                    padding: 6px 20px 6px 12px;
+                    border-radius: 4px;
+                }
+                QMenu::item:selected {
+                    background-color: rgba(99, 102, 241, 0.25);
+                    color: #38bdf8;
+                }
+                QMenu::separator {
+                    height: 1px;
+                    background-color: rgba(255, 255, 255, 0.08);
+                    margin: 4px 6px;
+                }
+            """)
+
+            title_act = menu.addAction("⚡ STUNT // Student Operating System")
+            title_act.setEnabled(False)
+
+            logs = db.get_attendance_logs()
+            total = len(logs)
+            present = sum(1 for l in logs if l.get('status') == 'Present')
+            pct = (present / total * 100.0) if total > 0 else 0.0
+            stat_ico = "🟢" if pct >= 75 else ("🟡" if pct >= 70 else "🔴")
+            att_act = menu.addAction(f"📊 Attendance: {pct:.1f}% ({stat_ico})")
+            att_act.triggered.connect(lambda: (self.switch_view(4), self.show_and_raise()))
+
+            next_lec = self.get_next_lecture()
+            if next_lec:
+                lec_act = menu.addAction(f"📅 Next: {next_lec.get('subject')} @ {next_lec.get('start')} ({next_lec.get('location')})")
+                lec_act.triggered.connect(lambda: (self.switch_view(6), self.show_and_raise()))
+            else:
+                menu.addAction("📅 Next: No further lectures today").setEnabled(False)
+
+            menu.addSeparator()
+
+            menu.addAction("⚔️ Exam War Room Mode", self.open_war_room)
+            menu.addAction("🎙️ J.A.R.V.I.S. Morning Briefing", self.trigger_morning_briefing)
+            menu.addAction("🪟 Toggle Glassmorphic HUD", self.toggle_glass_hud_widget)
+            menu.addAction("📄 Draft Formal Leave Application", self.open_leave_drafter)
+            menu.addAction("🖼️ Set Campus Lockscreen Wallpaper", lambda: generate_campus_wallpaper(self))
+
+            menu.addSeparator()
+
+            if next_lec:
+                menu.addAction(f"✓ Quick Mark Present: {next_lec.get('subject')}", self.quick_mark_next_present)
+                menu.addAction(f"✕ Quick Log Bunk: {next_lec.get('subject')}", self.quick_log_next_bunk)
+                menu.addSeparator()
+
+            menu.addAction("🖥️ Open STUNT Dashboard", self.show_and_raise)
+            menu.addAction("🔒 Toggle Privacy Shield (Veil)", self.toggle_privacy_mask_hotkey)
+            menu.addAction("🚪 Exit STUNT", QApplication.instance().quit)
+
+            self.tray_icon.setContextMenu(menu)
+        except Exception:
+            pass
 
 def main():
     app = QApplication(sys.argv)
